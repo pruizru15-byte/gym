@@ -487,8 +487,8 @@ const getMachines = (req, res) => {
         `).get();
         
         // Total maintenance cost this year
-        const { costo_mantenimiento_año } = db.prepare(`
-            SELECT COALESCE(SUM(costo), 0) as costo_mantenimiento_año
+        const { costo_mantenimiento_anio } = db.prepare(`
+            SELECT COALESCE(SUM(costo), 0) as costo_mantenimiento_anio
             FROM mantenimientos
             WHERE strftime('%Y', fecha) = strftime('%Y', 'now')
         `).get();
@@ -499,7 +499,7 @@ const getMachines = (req, res) => {
             necesitan_mantenimiento,
             por_categoria: porCategoria,
             mantenimientos_mes,
-            costo_mantenimiento_año
+            costo_mantenimiento_anio
         });
     } catch (error) {
         console.error('Get machines statistics error:', error);
