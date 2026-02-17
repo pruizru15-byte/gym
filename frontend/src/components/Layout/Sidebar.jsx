@@ -7,7 +7,9 @@ import {
   DollarSign,
   BarChart3,
   Settings,
-  Dumbbell
+  Dumbbell,
+  LogIn,
+  AlertCircle
 } from 'lucide-react'
 
 /**
@@ -17,8 +19,10 @@ import {
 const Sidebar = ({ isOpen, onToggle }) => {
   const navItems = [
     { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { path: '/miembros', icon: Users, label: 'Miembros' },
+    { path: '/clientes', icon: Users, label: 'Clientes' },
+    { path: '/check-in', icon: LogIn, label: 'Check-in' },
     { path: '/membresias', icon: CreditCard, label: 'Membresías' },
+    { path: '/membresias/vencimientos', icon: AlertCircle, label: 'Vencimientos' },
     { path: '/asistencias', icon: Calendar, label: 'Asistencias' },
     { path: '/pagos', icon: DollarSign, label: 'Pagos' },
     { path: '/reportes', icon: BarChart3, label: 'Reportes' },
