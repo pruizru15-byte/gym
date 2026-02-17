@@ -1,7 +1,14 @@
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const db = require('./config/database');
+const { displayServerInfo } = require('./utils/networkUtils');
+
+// Import services
+const notificacionesService = require('./services/notificacionesService');
+const backupService = require('./services/backupService');
 
 // Import middleware
 const errorHandler = require('./middleware/errorHandler');
@@ -21,6 +28,7 @@ const configuracionRoutes = require('./routes/configuracion');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const HOST = '0.0.0.0'; // Listen on all interfaces for LAN access
 
 // Middleware
 app.use(cors());
@@ -84,10 +92,19 @@ app.use((req, res) => {
 app.use(errorHandler);
 
 // Start server
-app.listen(PORT, () => {
-    console.log(`\n🚀 Server running on port ${PORT}`);
-    console.log(`📍 API available at http://localhost:${PORT}`);
-    console.log(`💪 Gym Management System v1.0.0\n`);
+app.listen(PORT, HOST, () => {
+    displayServerInfo(PORT);
+    
+    // Initialize scheduled services
+    console.log('🔧 Initializing scheduled services...');
+    notificacionesService.startDailyNotifications();
+    console.log('✅ Notifications service started (runs daily at midnight)');
+    
+    backupService.startAutomaticBackups();
+    console.log('✅ Backup service started (check configuration for schedule)');
+    
+    console.log('\n📚 API Documentation: See docs/API.md');
+    console.log('👤 Default credentials: username=admin, password=admin123\n');
 });
 
 module.exports = app;
