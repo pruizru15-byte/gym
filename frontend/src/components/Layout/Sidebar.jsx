@@ -9,7 +9,10 @@ import {
   Settings,
   Dumbbell,
   LogIn,
-  AlertCircle
+  AlertCircle,
+  ShoppingCart,
+  Package,
+  AlertTriangle
 } from 'lucide-react'
 
 /**
@@ -23,6 +26,10 @@ const Sidebar = ({ isOpen, onToggle }) => {
     { path: '/check-in', icon: LogIn, label: 'Check-in' },
     { path: '/membresias', icon: CreditCard, label: 'Membresías' },
     { path: '/membresias/vencimientos', icon: AlertCircle, label: 'Vencimientos' },
+    { path: '/tienda/punto-venta', icon: ShoppingCart, label: 'Punto de Venta' },
+    { path: '/tienda/productos', icon: Package, label: 'Productos' },
+    { path: '/tienda/alertas', icon: AlertTriangle, label: 'Alertas Stock' },
+    { path: '/maquinas', icon: Dumbbell, label: 'Máquinas' },
     { path: '/asistencias', icon: Calendar, label: 'Asistencias' },
     { path: '/pagos', icon: DollarSign, label: 'Pagos' },
     { path: '/reportes', icon: BarChart3, label: 'Reportes' },

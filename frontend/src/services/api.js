@@ -107,4 +107,34 @@ export const dashboardAPI = {
   getRecentActivity: () => api.get('/dashboard/actividad-reciente'),
 }
 
+// Store/Products API
+export const productsAPI = {
+  getAll: (params) => api.get('/productos', { params }),
+  getById: (id) => api.get(`/productos/${id}`),
+  create: (data) => api.post('/productos', data),
+  update: (id, data) => api.put(`/productos/${id}`, data),
+  delete: (id) => api.delete(`/productos/${id}`),
+  getLowStock: () => api.get('/productos/bajo-stock'),
+  getExpiringSoon: () => api.get('/productos/por-vencer'),
+}
+
+// Sales/POS API
+export const salesAPI = {
+  getAll: (params) => api.get('/ventas', { params }),
+  getById: (id) => api.get(`/ventas/${id}`),
+  create: (data) => api.post('/ventas', data),
+  getStats: (params) => api.get('/ventas/estadisticas', { params }),
+}
+
+// Machines API
+export const machinesAPI = {
+  getAll: (params) => api.get('/maquinas', { params }),
+  getById: (id) => api.get(`/maquinas/${id}`),
+  create: (data) => api.post('/maquinas', data),
+  update: (id, data) => api.put(`/maquinas/${id}`, data),
+  delete: (id) => api.delete(`/maquinas/${id}`),
+  recordMaintenance: (id, data) => api.post(`/maquinas/${id}/mantenimiento`, data),
+  getMaintenanceHistory: (id, params) => api.get(`/maquinas/${id}/mantenimiento`, { params }),
+}
+
 export default api

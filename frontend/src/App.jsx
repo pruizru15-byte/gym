@@ -16,6 +16,17 @@ import MembresiaForm from './components/Membresias/MembresiaForm'
 import RenovarMembresia from './components/Membresias/RenovarMembresia'
 import VencimientosProximos from './components/Membresias/VencimientosProximos'
 
+// Store/POS components
+import ProductosList from './components/Tienda/ProductosList'
+import ProductoForm from './components/Tienda/ProductoForm'
+import PuntoVenta from './components/Tienda/PuntoVenta'
+import AlertasInventario from './components/Tienda/AlertasInventario'
+
+// Machines components
+import MaquinasList from './components/Maquinas/MaquinasList'
+import MaquinaForm from './components/Maquinas/MaquinaForm'
+import MaquinaDetalle from './components/Maquinas/MaquinaDetalle'
+
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth()
@@ -66,6 +77,19 @@ function App() {
                 <Route path="/membresias/renovar/:id" element={<RenovarMembresia />} />
                 <Route path="/membresias/nueva/:id" element={<RenovarMembresia />} />
                 <Route path="/membresias/vencimientos" element={<VencimientosProximos />} />
+                
+                {/* Store/POS Routes */}
+                <Route path="/tienda/productos" element={<ProductosList />} />
+                <Route path="/tienda/productos/nuevo" element={<ProductoForm />} />
+                <Route path="/tienda/productos/:id/editar" element={<ProductoForm />} />
+                <Route path="/tienda/punto-venta" element={<PuntoVenta />} />
+                <Route path="/tienda/alertas" element={<AlertasInventario />} />
+                
+                {/* Machines Routes */}
+                <Route path="/maquinas" element={<MaquinasList />} />
+                <Route path="/maquinas/nueva" element={<MaquinaForm />} />
+                <Route path="/maquinas/:id" element={<MaquinaDetalle />} />
+                <Route path="/maquinas/:id/editar" element={<MaquinaForm />} />
                 
                 {/* Fallback */}
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
