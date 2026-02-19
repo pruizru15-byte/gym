@@ -5,7 +5,10 @@ import { membersAPI } from '../../services/api'
 import { formatDate, formatPhone, daysUntil } from '../../utils/formatters'
 import toast from 'react-hot-toast'
 
+import { usePermissions } from '../../hooks/usePermissions'
+
 const ClientesList = () => {
+  const { hasPermission, PERMISSIONS } = usePermissions()
   const [clientes, setClientes] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -27,12 +30,12 @@ const ClientesList = () => {
         sortBy: sortField,
         sortOrder: sortOrder,
       }
-      
+
       const response = await membersAPI.getAll(params)
       const data = response.data
-      
-      setClientes(data.miembros || data.data || [])
-      setTotalPages(data.totalPages || Math.ceil((data.total || 0) / itemsPerPage))
+
+      setClientes(data.clientes || data.miembros || data.data || [])
+      setTotalPages(data.pagination?.pages || Math.ceil((data.pagination?.total || 0) / itemsPerPage) || 1)
     } catch (error) {
       toast.error('Error al cargar clientes')
       console.error('Error fetching clients:', error)
@@ -76,12 +79,12 @@ const ClientesList = () => {
     if (!cliente.membresiaActiva) {
       return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">Inactivo</span>
     }
-    
+
     const days = daysUntil(cliente.fechaVencimiento)
     if (days !== null && days <= 7 && days >= 0) {
       return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">Por vencer</span>
     }
-    
+
     return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Activo</span>
   }
 
@@ -93,13 +96,15 @@ const ClientesList = () => {
           <h1 className="text-3xl font-bold text-gray-900">Clientes</h1>
           <p className="text-gray-600 mt-1">Gestiona los miembros del gimnasio</p>
         </div>
-        <Link
-          to="/clientes/nuevo"
-          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
-        >
-          <Plus size={20} />
-          Nuevo Cliente
-        </Link>
+        {hasPermission(PERMISSIONS.CAN_MANAGE_CLIENTS) && (
+          <Link
+            to="/clientes/nuevo"
+            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
+          >
+            <Plus size={20} />
+            Nuevo Cliente
+          </Link>
+        )}
       </div>
 
       {/* Search and Filters */}
@@ -276,11 +281,10 @@ const ClientesList = () => {
                         <button
                           key={i}
                           onClick={() => setCurrentPage(i + 1)}
-                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                            currentPage === i + 1
-                              ? 'z-10 bg-primary-50 border-primary-500 text-primary-600'
-                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                          }`}
+                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === i + 1
+                            ? 'z-10 bg-primary-50 border-primary-500 text-primary-600'
+                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                            }`}
                         >
                           {i + 1}
                         </button>

@@ -2,7 +2,10 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import Layout from './components/Layout/Layout'
 import Login from './components/Auth/Login'
+import ForgotPassword from './components/Auth/ForgotPassword'
 import Dashboard from './components/Dashboard/Dashboard'
+import PermissionGuard from './components/Auth/PermissionGuard'
+import { PERMISSIONS } from './hooks/usePermissions'
 
 // Client components
 import ClientesList from './components/Clientes/ClientesList'
@@ -27,10 +30,14 @@ import MaquinasList from './components/Maquinas/MaquinasList'
 import MaquinaForm from './components/Maquinas/MaquinaForm'
 import MaquinaDetalle from './components/Maquinas/MaquinaDetalle'
 
+// Settings
+import UserProfile from './components/Profile/UserProfile'
+import Settings from './components/Settings/Settings'
+
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth()
-  
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -38,11 +45,11 @@ const ProtectedRoute = ({ children }) => {
       </div>
     )
   }
-  
+
   if (!user) {
     return <Navigate to="/login" replace />
   }
-  
+
   return children
 }
 
@@ -51,7 +58,8 @@ function App() {
     <Routes>
       {/* Public Routes */}
       <Route path="/login" element={<Login />} />
-      
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+
       {/* Protected Routes */}
       <Route
         path="/*"
@@ -62,35 +70,124 @@ function App() {
                 {/* Dashboard */}
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/dashboard" element={<Dashboard />} />
-                
+
                 {/* Clients Routes */}
-                <Route path="/clientes" element={<ClientesList />} />
-                <Route path="/clientes/nuevo" element={<ClienteForm />} />
-                <Route path="/clientes/:id" element={<ClienteDetalle />} />
-                <Route path="/clientes/:id/editar" element={<ClienteForm />} />
-                <Route path="/check-in" element={<CheckIn />} />
-                
+                <Route path="/clientes" element={
+                  <PermissionGuard permission={PERMISSIONS.CAN_VIEW_CLIENTS}>
+                    <ClientesList />
+                  </PermissionGuard>
+                } />
+                <Route path="/clientes/nuevo" element={
+                  <PermissionGuard permission={PERMISSIONS.CAN_MANAGE_CLIENTS}>
+                    <ClienteForm />
+                  </PermissionGuard>
+                } />
+                <Route path="/clientes/:id" element={
+                  <PermissionGuard permission={PERMISSIONS.CAN_VIEW_CLIENTS}>
+                    <ClienteDetalle />
+                  </PermissionGuard>
+                } />
+                <Route path="/clientes/:id/editar" element={
+                  <PermissionGuard permission={PERMISSIONS.CAN_MANAGE_CLIENTS}>
+                    <ClienteForm />
+                  </PermissionGuard>
+                } />
+                <Route path="/check-in" element={
+                  <PermissionGuard permission={PERMISSIONS.CAN_CHECK_IN}>
+                    <CheckIn />
+                  </PermissionGuard>
+                } />
+
                 {/* Membership Routes */}
-                <Route path="/membresias" element={<MembresiasList />} />
-                <Route path="/membresias/nuevo" element={<MembresiaForm />} />
-                <Route path="/membresias/editar/:id" element={<MembresiaForm />} />
-                <Route path="/membresias/renovar/:id" element={<RenovarMembresia />} />
-                <Route path="/membresias/nueva/:id" element={<RenovarMembresia />} />
-                <Route path="/membresias/vencimientos" element={<VencimientosProximos />} />
-                
+                <Route path="/membresias" element={
+                  <PermissionGuard permission={PERMISSIONS.CAN_VIEW_CLIENTS}>
+                    <MembresiasList />
+                  </PermissionGuard>
+                } />
+                <Route path="/membresias/nuevo" element={
+                  <PermissionGuard permission={PERMISSIONS.CAN_CONFIGURE_SYSTEM}>
+                    <MembresiaForm />
+                  </PermissionGuard>
+                } />
+                <Route path="/membresias/editar/:id" element={
+                  <PermissionGuard permission={PERMISSIONS.CAN_CONFIGURE_SYSTEM}>
+                    <MembresiaForm />
+                  </PermissionGuard>
+                } />
+                <Route path="/membresias/renovar/:id" element={
+                  <PermissionGuard permission={PERMISSIONS.CAN_RENEW_MEMBERSHIP}>
+                    <RenovarMembresia />
+                  </PermissionGuard>
+                } />
+                <Route path="/membresias/Vencimientos" element={
+                  <PermissionGuard permission={PERMISSIONS.CAN_RENEW_MEMBERSHIP}>
+                    <VencimientosProximos />
+                  </PermissionGuard>
+                } />
+
                 {/* Store/POS Routes */}
-                <Route path="/tienda/productos" element={<ProductosList />} />
-                <Route path="/tienda/productos/nuevo" element={<ProductoForm />} />
-                <Route path="/tienda/productos/:id/editar" element={<ProductoForm />} />
-                <Route path="/tienda/punto-venta" element={<PuntoVenta />} />
-                <Route path="/tienda/alertas" element={<AlertasInventario />} />
-                
+                <Route path="/tienda/productos" element={
+                  <PermissionGuard permission={PERMISSIONS.CAN_MANAGE_INVENTORY}>
+                    <ProductosList />
+                  </PermissionGuard>
+                } />
+                <Route path="/tienda/productos/nuevo" element={
+                  <PermissionGuard permission={PERMISSIONS.CAN_MANAGE_INVENTORY}>
+                    <ProductoForm />
+                  </PermissionGuard>
+                } />
+                <Route path="/tienda/productos/:id/editar" element={
+                  <PermissionGuard permission={PERMISSIONS.CAN_MANAGE_INVENTORY}>
+                    <ProductoForm />
+                  </PermissionGuard>
+                } />
+                <Route path="/tienda/punto-venta" element={
+                  <PermissionGuard permission={PERMISSIONS.CAN_POS}>
+                    <PuntoVenta />
+                  </PermissionGuard>
+                } />
+                <Route path="/tienda/alertas" element={
+                  <PermissionGuard permission={PERMISSIONS.CAN_MANAGE_INVENTORY}>
+                    <AlertasInventario />
+                  </PermissionGuard>
+                } />
+
                 {/* Machines Routes */}
-                <Route path="/maquinas" element={<MaquinasList />} />
-                <Route path="/maquinas/nueva" element={<MaquinaForm />} />
-                <Route path="/maquinas/:id" element={<MaquinaDetalle />} />
-                <Route path="/maquinas/:id/editar" element={<MaquinaForm />} />
-                
+                <Route path="/maquinas" element={
+                  <PermissionGuard permission={PERMISSIONS.CAN_MANAGE_MACHINES}>
+                    <MaquinasList />
+                  </PermissionGuard>
+                } />
+                <Route path="/maquinas/nueva" element={
+                  <PermissionGuard permission={PERMISSIONS.CAN_MANAGE_MACHINES}>
+                    <MaquinaForm />
+                  </PermissionGuard>
+                } />
+                <Route path="/maquinas/:id" element={
+                  <PermissionGuard permission={PERMISSIONS.CAN_MANAGE_MACHINES}>
+                    <MaquinaDetalle />
+                  </PermissionGuard>
+                } />
+                <Route path="/maquinas/:id/editar" element={
+                  <PermissionGuard permission={PERMISSIONS.CAN_MANAGE_MACHINES}>
+                    <MaquinaForm />
+                  </PermissionGuard>
+                } />
+
+                {/* User Profile */}
+                <Route path="/perfil" element={
+                  <PermissionGuard>
+                    <UserProfile />
+                  </PermissionGuard>
+                } />
+
+                {/* Config Routes */}
+                <Route path="/configuracion/*" element={
+                  <PermissionGuard permission={PERMISSIONS.CAN_MANAGE_USERS}>
+                    <Settings />
+                  </PermissionGuard>
+                } />
+
                 {/* Fallback */}
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>

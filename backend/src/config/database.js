@@ -18,9 +18,9 @@ db.pragma('journal_mode = WAL');
 // Function to run migrations
 function runMigrations() {
     console.log('Running migrations...');
-    const migrationFile = path.join(__dirname, '../database/migrations/init.sql');
+    const migrationFile = path.join(__dirname, '../../database/migrations/init.sql');
     const sql = fs.readFileSync(migrationFile, 'utf8');
-    
+
     // Split by semicolon and execute each statement
     const statements = sql.split(';').filter(stmt => stmt.trim());
     statements.forEach(stmt => {
@@ -28,18 +28,18 @@ function runMigrations() {
             db.exec(stmt);
         }
     });
-    
+
     console.log('Migrations completed successfully!');
 }
 
 // Function to seed initial data
 function seedData() {
     console.log('Seeding initial data...');
-    
+
     try {
         // Check if admin user already exists
         const existingAdmin = db.prepare('SELECT * FROM usuarios WHERE username = ?').get('admin');
-        
+
         if (!existingAdmin) {
             // Create admin user
             const hashedPassword = bcrypt.hashSync('admin123', 10);
@@ -49,10 +49,10 @@ function seedData() {
             `).run('admin', hashedPassword, 'Administrador', 'admin@gimnasio.com', 'admin', 1);
             console.log('Admin user created: username=admin, password=admin123');
         }
-        
+
         // Check if memberships already exist
         const existingMembership = db.prepare('SELECT * FROM membresias LIMIT 1').get();
-        
+
         if (!existingMembership) {
             // Create default memberships
             const memberships = [
@@ -63,21 +63,21 @@ function seedData() {
                 { nombre: 'Semestral', duracion_dias: 180, precio: 350.00, descripcion: 'Acceso por 6 meses' },
                 { nombre: 'Anual', duracion_dias: 365, precio: 600.00, descripcion: 'Acceso por 1 año' }
             ];
-            
+
             const insertMembresia = db.prepare(`
                 INSERT INTO membresias (nombre, duracion_dias, precio, descripcion, activo)
                 VALUES (?, ?, ?, ?, ?)
             `);
-            
+
             memberships.forEach(m => {
                 insertMembresia.run(m.nombre, m.duracion_dias, m.precio, m.descripcion, 1);
             });
             console.log('Default memberships created');
         }
-        
+
         // Check if config already exists
         const existingConfig = db.prepare('SELECT * FROM configuracion LIMIT 1').get();
-        
+
         if (!existingConfig) {
             // Create initial configuration
             const configs = [
@@ -92,18 +92,18 @@ function seedData() {
                 { clave: 'backup_retention_days', valor: '30', descripcion: 'Días de retención de backups' },
                 { clave: 'moneda', valor: '$', descripcion: 'Símbolo de moneda' }
             ];
-            
+
             const insertConfig = db.prepare(`
                 INSERT INTO configuracion (clave, valor, descripcion)
                 VALUES (?, ?, ?)
             `);
-            
+
             configs.forEach(c => {
                 insertConfig.run(c.clave, c.valor, c.descripcion);
             });
             console.log('Initial configuration created');
         }
-        
+
         console.log('Seeding completed successfully!');
     } catch (error) {
         console.error('Error seeding data:', error);
@@ -114,7 +114,7 @@ function seedData() {
 // Command line interface
 if (require.main === module) {
     const command = process.argv[2];
-    
+
     if (command === 'migrate') {
         runMigrations();
     } else if (command === 'seed') {

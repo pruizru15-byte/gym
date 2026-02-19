@@ -5,7 +5,10 @@ import { plansAPI } from '../../services/api'
 import { formatCurrency } from '../../utils/formatters'
 import toast from 'react-hot-toast'
 
+import { usePermissions } from '../../hooks/usePermissions'
+
 const MembresiasList = () => {
+  const { hasPermission, PERMISSIONS } = usePermissions()
   const [planes, setPlanes] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -73,13 +76,15 @@ const MembresiasList = () => {
           <h1 className="text-3xl font-bold text-gray-900">Planes de Membresía</h1>
           <p className="text-gray-600 mt-1">Gestiona los planes y precios</p>
         </div>
-        <Link
-          to="/membresias/nuevo"
-          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
-        >
-          <Plus size={20} />
-          Nuevo Plan
-        </Link>
+        {hasPermission(PERMISSIONS.CAN_CONFIGURE_SYSTEM) && (
+          <Link
+            to="/membresias/nuevo"
+            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
+          >
+            <Plus size={20} />
+            Nuevo Plan
+          </Link>
+        )}
       </div>
 
       {/* Plans Grid */}
@@ -92,13 +97,15 @@ const MembresiasList = () => {
           <AlertCircle className="mx-auto text-gray-400 mb-4" size={48} />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No hay planes registrados</h3>
           <p className="text-gray-600 mb-6">Crea tu primer plan de membresía</p>
-          <Link
-            to="/membresias/nuevo"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
-          >
-            <Plus size={20} />
-            Crear Plan
-          </Link>
+          {hasPermission(PERMISSIONS.CAN_CONFIGURE_SYSTEM) && (
+            <Link
+              to="/membresias/nuevo"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
+            >
+              <Plus size={20} />
+              Crear Plan
+            </Link>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -150,7 +157,7 @@ const MembresiasList = () => {
                     <Clock size={16} className="text-gray-400" />
                     <span>Duración: {getDurationText(plan.duracion, plan.tipoDuracion)}</span>
                   </div>
-                  
+
                   {plan.descripcion && (
                     <p className="text-sm text-gray-600 leading-relaxed">
                       {plan.descripcion}
@@ -166,22 +173,24 @@ const MembresiasList = () => {
                 </div>
 
                 {/* Actions */}
-                <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex gap-2">
-                  <Link
-                    to={`/membresias/editar/${plan.id}`}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition text-sm font-medium"
-                  >
-                    <Edit size={16} />
-                    Editar
-                  </Link>
-                  <button
-                    onClick={() => handleDelete(plan.id, plan.nombre)}
-                    className="flex items-center justify-center gap-2 px-3 py-2 bg-white border border-red-300 rounded-lg text-red-700 hover:bg-red-50 transition text-sm font-medium"
-                  >
-                    <Trash2 size={16} />
-                    Eliminar
-                  </button>
-                </div>
+                {hasPermission(PERMISSIONS.CAN_CONFIGURE_SYSTEM) && (
+                  <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex gap-2">
+                    <Link
+                      to={`/membresias/editar/${plan.id}`}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition text-sm font-medium"
+                    >
+                      <Edit size={16} />
+                      Editar
+                    </Link>
+                    <button
+                      onClick={() => handleDelete(plan.id, plan.nombre)}
+                      className="flex items-center justify-center gap-2 px-3 py-2 bg-white border border-red-300 rounded-lg text-red-700 hover:bg-red-50 transition text-sm font-medium"
+                    >
+                      <Trash2 size={16} />
+                      Eliminar
+                    </button>
+                  </div>
+                )}
               </div>
             )
           })}

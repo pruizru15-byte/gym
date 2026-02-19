@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { machinesAPI } from '../../services/api'
-import { 
-  Dumbbell, 
-  Plus, 
-  Search, 
-  Edit, 
+import {
+  Dumbbell,
+  Plus,
+  Search,
+  Edit,
   Trash2,
   Filter,
   X,
@@ -16,10 +16,13 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
+import { usePermissions } from '../../hooks/usePermissions'
+
 /**
  * MaquinasList - List all gym machines with status filters
  */
 const MaquinasList = () => {
+  const { hasPermission, PERMISSIONS } = usePermissions()
   const [maquinas, setMaquinas] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -34,7 +37,7 @@ const MaquinasList = () => {
     try {
       setLoading(true)
       const response = await machinesAPI.getAll()
-      setMaquinas(response.data)
+      setMaquinas(response.data.maquinas || response.data || [])
     } catch (error) {
       toast.error('Error al cargar máquinas')
       console.error('Error fetching machines:', error)
@@ -58,12 +61,12 @@ const MaquinasList = () => {
 
   // Filter machines
   const filteredMaquinas = maquinas.filter((maquina) => {
-    const matchesSearch = 
+    const matchesSearch =
       maquina.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       maquina.codigo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       maquina.ubicacion?.toLowerCase().includes(searchTerm.toLowerCase())
-    
-    const matchesStatus = 
+
+    const matchesStatus =
       statusFilter === 'all' || maquina.estado === statusFilter
 
     return matchesSearch && matchesStatus
@@ -118,13 +121,15 @@ const MaquinasList = () => {
             {filteredMaquinas.length} máquina(s) encontrada(s)
           </p>
         </div>
-        <Link
-          to="/maquinas/nueva"
-          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-        >
-          <Plus className="w-5 h-5" />
-          Nueva Máquina
-        </Link>
+        {hasPermission(PERMISSIONS.CAN_MANAGE_MACHINES) && (
+          <Link
+            to="/maquinas/nueva"
+            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+            Nueva Máquina
+          </Link>
+        )}
       </div>
 
       {/* Search and Filters */}
@@ -208,11 +213,10 @@ const MaquinasList = () => {
                 className="bg-white rounded-lg shadow-sm border-2 border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
               >
                 {/* Status Bar */}
-                <div className={`h-2 ${
-                  maquina.estado === 'disponible' ? 'bg-green-500' :
+                <div className={`h-2 ${maquina.estado === 'disponible' ? 'bg-green-500' :
                   maquina.estado === 'mantenimiento' ? 'bg-yellow-500' :
-                  'bg-red-500'
-                }`}></div>
+                    'bg-red-500'
+                  }`}></div>
 
                 <div className="p-5">
                   {/* Header */}
@@ -274,18 +278,22 @@ const MaquinasList = () => {
                     >
                       Ver Detalles
                     </Link>
-                    <Link
-                      to={`/maquinas/${maquina.id}/editar`}
-                      className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Link>
-                    <button
-                      onClick={() => handleDelete(maquina.id)}
-                      className="px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {hasPermission(PERMISSIONS.CAN_MANAGE_MACHINES) && (
+                      <>
+                        <Link
+                          to={`/maquinas/${maquina.id}/editar`}
+                          className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Link>
+                        <button
+                          onClick={() => handleDelete(maquina.id)}
+                          className="px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

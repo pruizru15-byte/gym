@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { Dumbbell, LogIn, Eye, EyeOff } from 'lucide-react'
 
@@ -10,9 +10,9 @@ import { Dumbbell, LogIn, Eye, EyeOff } from 'lucide-react'
 const Login = () => {
   const navigate = useNavigate()
   const { login, user } = useAuth()
-  
+
   const [formData, setFormData] = useState({
-    email: '',
+    identifier: '',
     password: ''
   })
   const [loading, setLoading] = useState(false)
@@ -36,33 +36,36 @@ const Login = () => {
 
   const validateForm = () => {
     const newErrors = {}
-    
-    if (!formData.email.trim()) {
-      newErrors.email = 'El email es requerido'
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Email inválido'
+
+    if (!formData.identifier.trim()) {
+      newErrors.identifier = 'El usuario o email es requerido'
     }
-    
+
     if (!formData.password) {
       newErrors.password = 'La contraseña es requerida'
     } else if (formData.password.length < 6) {
       newErrors.password = 'La contraseña debe tener al menos 6 caracteres'
     }
-    
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
+
     if (!validateForm()) return
-    
+
     setLoading(true)
-    
+
     try {
-      const result = await login(formData)
-      
+      // Map identifier to username for backend (backend checks both columns)
+      const payload = {
+        username: formData.identifier,
+        password: formData.password
+      }
+      const result = await login(payload)
+
       if (result.success) {
         navigate('/dashboard')
       }
@@ -92,24 +95,24 @@ const Login = () => {
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Email field */}
+            {/* Identifier field */}
             <div>
-              <label htmlFor="email" className="label">
-                Email
+              <label htmlFor="identifier" className="label">
+                Usuario o Email
               </label>
               <input
-                type="email"
-                id="email"
-                name="email"
-                value={formData.email}
+                type="text"
+                id="identifier"
+                name="identifier"
+                value={formData.identifier}
                 onChange={handleChange}
-                className={`input ${errors.email ? 'border-red-500' : ''}`}
-                placeholder="tu@email.com"
-                autoComplete="email"
+                className={`input ${errors.identifier ? 'border-red-500' : ''}`}
+                placeholder="usuario o tu@email.com"
+                autoComplete="username"
                 disabled={loading}
               />
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+              {errors.identifier && (
+                <p className="mt-1 text-sm text-red-600">{errors.identifier}</p>
               )}
             </div>
 
@@ -146,6 +149,11 @@ const Login = () => {
               {errors.password && (
                 <p className="mt-1 text-sm text-red-600">{errors.password}</p>
               )}
+              <div className="flex justify-end mt-1">
+                <Link to="/forgot-password" className="text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline">
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </div>
             </div>
 
             {/* Submit button */}

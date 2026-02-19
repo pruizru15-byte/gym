@@ -23,7 +23,7 @@ const IngresoChart = () => {
       // Calculate date range based on period
       const endDate = new Date()
       const startDate = new Date()
-      
+
       switch (period) {
         case '1m':
           startDate.setMonth(startDate.getMonth() - 1)
@@ -44,7 +44,8 @@ const IngresoChart = () => {
       })
 
       // Transform data for chart
-      const chartData = response.data.map(item => ({
+      const dataToMap = response.data.por_periodo || response.data || []
+      const chartData = dataToMap.map(item => ({
         mes: item.mes || item.periodo,
         ingresos: parseFloat(item.total_ingresos || item.total || 0)
       }))
@@ -53,7 +54,7 @@ const IngresoChart = () => {
     } catch (error) {
       console.error('Error fetching income data:', error)
       toast.error('Error al cargar datos de ingresos')
-      
+
       // Set dummy data for demo
       setData(generateDummyData(period))
     } finally {
@@ -66,7 +67,7 @@ const IngresoChart = () => {
     const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
     const count = period === '1m' ? 4 : period === '3m' ? 3 : 6
     const currentMonth = new Date().getMonth()
-    
+
     return Array.from({ length: count }, (_, i) => {
       const monthIndex = (currentMonth - count + i + 1 + 12) % 12
       return {
@@ -99,36 +100,33 @@ const IngresoChart = () => {
         <h2 className="text-lg font-semibold text-gray-900">
           Ingresos
         </h2>
-        
+
         {/* Period selector */}
         <div className="flex gap-2">
           <button
             onClick={() => setPeriod('1m')}
-            className={`px-3 py-1 text-sm rounded-lg transition-colors ${
-              period === '1m'
+            className={`px-3 py-1 text-sm rounded-lg transition-colors ${period === '1m'
                 ? 'bg-primary-100 text-primary-700 font-medium'
                 : 'text-gray-600 hover:bg-gray-100'
-            }`}
+              }`}
           >
             1M
           </button>
           <button
             onClick={() => setPeriod('3m')}
-            className={`px-3 py-1 text-sm rounded-lg transition-colors ${
-              period === '3m'
+            className={`px-3 py-1 text-sm rounded-lg transition-colors ${period === '3m'
                 ? 'bg-primary-100 text-primary-700 font-medium'
                 : 'text-gray-600 hover:bg-gray-100'
-            }`}
+              }`}
           >
             3M
           </button>
           <button
             onClick={() => setPeriod('6m')}
-            className={`px-3 py-1 text-sm rounded-lg transition-colors ${
-              period === '6m'
+            className={`px-3 py-1 text-sm rounded-lg transition-colors ${period === '6m'
                 ? 'bg-primary-100 text-primary-700 font-medium'
                 : 'text-gray-600 hover:bg-gray-100'
-            }`}
+              }`}
           >
             6M
           </button>
@@ -145,21 +143,21 @@ const IngresoChart = () => {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis 
-                dataKey="mes" 
+              <XAxis
+                dataKey="mes"
                 stroke="#6b7280"
                 style={{ fontSize: '12px' }}
               />
-              <YAxis 
+              <YAxis
                 stroke="#6b7280"
                 style={{ fontSize: '12px' }}
                 tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
               />
               <Tooltip content={<CustomTooltip />} />
-              <Line 
-                type="monotone" 
-                dataKey="ingresos" 
-                stroke="#2563eb" 
+              <Line
+                type="monotone"
+                dataKey="ingresos"
+                stroke="#2563eb"
                 strokeWidth={2}
                 dot={{ fill: '#2563eb', r: 4 }}
                 activeDot={{ r: 6 }}

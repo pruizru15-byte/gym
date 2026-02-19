@@ -166,18 +166,18 @@ Formulario Crear/Editar Usuario:
 
 Roles y Permisos:
 
-| Permiso | Administrador | Recepción | Cajero |
-|---------|--------------|-----------|--------|
+| Permiso | Administrador | Recepción    | Cajero      |
+|---------|--------------|---------------|-------------|
 | Dashboard completo | ✅ | ✅ Limitado | ✅ Limitado |
-| Gestionar usuarios | ✅ | ❌ | ❌ |
-| Gestionar clientes | ✅ | ✅ | ✅ Ver |
-| Registrar check-in | ✅ | ✅ | ❌ |
-| Renovar membresías | ✅ | ✅ | ❌ |
-| Punto de venta | ✅ | ✅ | ✅ |
-| Gestionar inventario | ✅ | ❌ | ✅ |
-| Ver reportes financieros | ✅ | ❌ | ❌ |
-| Configurar sistema | ✅ | ❌ | ❌ |
-| Crear/editar máquinas | ✅ | ❌ | ❌ |
+| Gestionar usuarios | ✅ | ❌          | ❌          |
+| Gestionar clientes | ✅ | ✅          |      ✅ Ver |
+| Registrar check-in | ✅ | ✅          |  ❌         |
+| Renovar membresías | ✅ | ✅          | ❌          |
+| Punto de venta     |✅  | ✅          | ✅          |
+| Gestionar inventario | ✅ | ❌          | ✅        |
+| Ver reportes financieros | ✅ | ❌          | ❌    |
+| Configurar sistema | ✅ | ❌          | ❌          |
+| Crear/editar máquinas | ✅ | ❌          | ❌          |
 
 ---
 

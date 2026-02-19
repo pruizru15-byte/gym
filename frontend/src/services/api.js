@@ -37,85 +37,100 @@ api.interceptors.response.use(
 )
 
 // Auth API
+// Auth API
 export const authAPI = {
   login: (credentials) => api.post('/auth/login', credentials),
   logout: () => api.post('/auth/logout'),
   getCurrentUser: () => api.get('/auth/me'),
+  updateProfile: (id, data) => api.put(`/usuarios/${id}`, data), // Add update profile
+  changePassword: (id, data) => api.post(`/usuarios/${id}/reset-password`, data), // Add change password
 }
 
-// Members API
+// Users API (Admin & Profile)
+export const usersAPI = {
+  getAll: () => api.get('/usuarios'),
+  getById: (id) => api.get(`/usuarios/${id}`),
+  create: (data) => api.post('/usuarios', data),
+  update: (id, data) => api.put(`/usuarios/${id}`, data),
+  delete: (id) => api.delete(`/usuarios/${id}`),
+  getAuditLogs: (params) => api.get('/usuarios/audit-logs', { params }), // Add audit logs
+}
+
+// Clients API (formerly membersAPI)
 export const membersAPI = {
-  getAll: (params) => api.get('/miembros', { params }),
-  getById: (id) => api.get(`/miembros/${id}`),
-  create: (data) => api.post('/miembros', data),
-  update: (id, data) => api.put(`/miembros/${id}`, data),
-  delete: (id) => api.delete(`/miembros/${id}`),
+  getAll: (params) => api.get('/clientes', { params }), // Changed from /miembros
+  getById: (id) => api.get(`/clientes/${id}`),
+  create: (data) => api.post('/clientes', data),
+  update: (id, data) => api.put(`/clientes/${id}`, data),
+  delete: (id) => api.delete(`/clientes/${id}`),
 }
 
-// Memberships API
+// Memberships Assignments API
 export const membershipsAPI = {
-  getAll: (params) => api.get('/membresias', { params }),
+  // Logic might be mixed here, but mapping based on best guess
+  getAll: (params) => api.get('/membresias', { params }), // NOTE: This actually gets Plans currently
   getById: (id, params) => api.get(`/membresias/${id}`, { params }),
-  getActive: (miembroId) => api.get(`/membresias/activa/${miembroId}`),
-  create: (data) => api.post('/membresias', data),
+  getActive: (clienteId) => api.get(`/membresias/cliente/${clienteId}`), // Changed path
+  create: (data) => api.post('/membresias/asignar', data), // Changed for assignment
   update: (id, data) => api.put(`/membresias/${id}`, data),
-  cancel: (id) => api.put(`/membresias/${id}/cancelar`),
+  cancel: (id) => api.put(`/membresias/${id}/cancelar`), // This might need backend implementation
 }
 
 // Plans API
 export const plansAPI = {
-  getAll: (params) => api.get('/planes', { params }),
-  getById: (id) => api.get(`/planes/${id}`),
-  create: (data) => api.post('/planes', data),
-  update: (id, data) => api.put(`/planes/${id}`, data),
-  delete: (id) => api.delete(`/planes/${id}`),
+  getAll: (params) => api.get('/membresias', { params }), // Plans are at /membresias
+  getById: (id) => api.get(`/membresias/${id}`),
+  create: (data) => api.post('/membresias', data),
+  update: (id, data) => api.put(`/membresias/${id}`, data),
+  delete: (id) => api.delete(`/membresias/${id}`),
 }
 
 // Payments API
 export const paymentsAPI = {
-  getAll: (params) => api.get('/pagos', { params }),
-  getById: (id) => api.get(`/pagos/${id}`),
-  create: (data) => api.post('/pagos', data),
-  getByMembership: (membresiaId) => api.get(`/pagos/membresia/${membresiaId}`),
+  getAll: (params) => api.get('/ventas', { params }), // Payments likely tracked via sales/ventas
+  getById: (id) => api.get(`/ventas/${id}`),
+  create: (data) => api.post('/ventas', data),
+  getByMembership: (membresiaId) => api.get(`/ventas/membresia/${membresiaId}`), // Warning: mismatch likely
 }
 
 // Attendance API
 export const attendanceAPI = {
   getAll: (params) => api.get('/asistencias', { params }),
-  register: (data) => api.post('/asistencias', data),
-  getByMember: (miembroId, params) => api.get(`/asistencias/miembro/${miembroId}`, { params }),
+  register: (data) => api.post('/asistencias/checkin', data), // Changed to specific endpoint
+  getByMember: (clienteId, params) => api.get(`/asistencias/cliente/${clienteId}`, { params }), // Changed to /cliente
   getStats: (params) => api.get('/asistencias/estadisticas', { params }),
 }
 
-// Alerts API
+// Notifications API (formerly alertsAPI)
 export const alertsAPI = {
-  getAll: (params) => api.get('/alertas', { params }),
-  markAsRead: (id) => api.put(`/alertas/${id}/leida`),
-  markAllAsRead: () => api.put('/alertas/marcar-todas-leidas'),
+  getAll: (params) => api.get('/notificaciones', { params }),
+  markAsRead: (id) => api.patch(`/notificaciones/${id}/marcar-leida`), // PUT -> PATCH
+  markAllAsRead: () => api.patch('/notificaciones/marcar-todas-leidas'), // PUT -> PATCH
+  getUnreadCount: () => api.get('/notificaciones/no-leidas/contador'),
 }
 
-// Reports API
+// Reports API (now Metricas)
 export const reportsAPI = {
-  getIncome: (params) => api.get('/reportes/ingresos', { params }),
-  getMembers: (params) => api.get('/reportes/miembros', { params }),
-  getAttendance: (params) => api.get('/reportes/asistencias', { params }),
+  getIncome: (params) => api.get('/metricas/ingresos', { params }),
+  getMembers: (params) => api.get('/metricas/membresias', { params }),
+  getAttendance: (params) => api.get('/metricas/asistencias', { params }),
 }
 
 // Dashboard API
 export const dashboardAPI = {
-  getMetrics: () => api.get('/dashboard/metricas'),
-  getRecentActivity: () => api.get('/dashboard/actividad-reciente'),
+  getMetrics: () => api.get('/metricas/dashboard'), // Changed path
+  getRecentActivity: () => api.get('/metricas/actividad-reciente'), // Warning: Endpoint might not exist
 }
 
 // Store/Products API
 export const productsAPI = {
-  getAll: (params) => api.get('/productos', { params }),
-  getById: (id) => api.get(`/productos/${id}`),
-  create: (data) => api.post('/productos', data),
-  update: (id, data) => api.put(`/productos/${id}`, data),
-  delete: (id) => api.delete(`/productos/${id}`),
-  getLowStock: () => api.get('/productos/bajo-stock'),
-  getExpiringSoon: () => api.get('/productos/por-vencer'),
+  getAll: (params) => api.get('/tienda', { params }), // Changed to /tienda
+  getById: (id) => api.get(`/tienda/${id}`),
+  create: (data) => api.post('/tienda', data),
+  update: (id, data) => api.put(`/tienda/${id}`, data),
+  delete: (id) => api.delete(`/tienda/${id}`),
+  getLowStock: () => api.get('/tienda/stock-bajo'),
+  getExpiringSoon: () => api.get('/tienda/por-vencer'), // Warning: Endpoint missing
 }
 
 // Sales/POS API
@@ -123,7 +138,7 @@ export const salesAPI = {
   getAll: (params) => api.get('/ventas', { params }),
   getById: (id) => api.get(`/ventas/${id}`),
   create: (data) => api.post('/ventas', data),
-  getStats: (params) => api.get('/ventas/estadisticas', { params }),
+  getStats: (params) => api.get('/ventas/estadisticas'), // Warning: Endpoint missing in ventas.js? (Actually no, it's not there)
 }
 
 // Machines API

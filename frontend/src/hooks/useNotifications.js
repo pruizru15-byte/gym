@@ -18,9 +18,9 @@ export const useNotifications = () => {
     setError(null)
     try {
       const response = await alertsAPI.getAll(params)
-      const alerts = response.data.alertas || response.data
+      const alerts = response.data.notificaciones || response.data.alertas || response.data || []
       setNotifications(alerts)
-      
+
       // Count unread notifications
       const unread = alerts.filter(alert => !alert.leida).length
       setUnreadCount(unread)
@@ -36,7 +36,7 @@ export const useNotifications = () => {
   const markAsRead = async (id) => {
     try {
       await alertsAPI.markAsRead(id)
-      
+
       // Update local state
       setNotifications(prev =>
         prev.map(notif =>
@@ -53,7 +53,7 @@ export const useNotifications = () => {
   const markAllAsRead = async () => {
     try {
       await alertsAPI.markAllAsRead()
-      
+
       // Update local state
       setNotifications(prev =>
         prev.map(notif => ({ ...notif, leida: true }))

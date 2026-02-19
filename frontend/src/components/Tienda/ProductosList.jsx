@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { productsAPI } from '../../services/api'
-import { 
-  Package, 
-  Plus, 
-  Search, 
-  AlertTriangle, 
-  Edit, 
+import {
+  Package,
+  Plus,
+  Search,
+  AlertTriangle,
+  Edit,
   Trash2,
   Filter,
   X
@@ -35,7 +35,7 @@ const ProductosList = () => {
     try {
       setLoading(true)
       const response = await productsAPI.getAll()
-      setProductos(response.data)
+      setProductos(response.data.productos || response.data || [])
     } catch (error) {
       toast.error('Error al cargar productos')
       console.error('Error fetching products:', error)
@@ -59,14 +59,14 @@ const ProductosList = () => {
 
   // Filter products based on search, category, and stock
   const filteredProductos = productos.filter((producto) => {
-    const matchesSearch = 
+    const matchesSearch =
       producto.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       producto.codigo?.toLowerCase().includes(searchTerm.toLowerCase())
-    
-    const matchesCategory = 
+
+    const matchesCategory =
       !categoryFilter || producto.categoria === categoryFilter
-    
-    const matchesStock = 
+
+    const matchesStock =
       stockFilter === 'all' ||
       (stockFilter === 'low' && producto.cantidad <= producto.stock_minimo) ||
       (stockFilter === 'out' && producto.cantidad === 0)

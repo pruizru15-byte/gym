@@ -13,7 +13,7 @@ export const AuthProvider = ({ children }) => {
     const initAuth = async () => {
       const token = localStorage.getItem('token')
       const savedUser = localStorage.getItem('user')
-      
+
       if (token && savedUser) {
         try {
           setUser(JSON.parse(savedUser))
@@ -26,7 +26,7 @@ export const AuthProvider = ({ children }) => {
           localStorage.removeItem('user')
         }
       }
-      
+
       setLoading(false)
     }
 
@@ -36,13 +36,13 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     try {
       const response = await authAPI.login(credentials)
-      const { token, usuario } = response.data
-      
+      const { token, user } = response.data
+
       localStorage.setItem('token', token)
-      localStorage.setItem('user', JSON.stringify(usuario))
-      setUser(usuario)
-      
-      toast.success(`¡Bienvenido, ${usuario.nombre}!`)
+      localStorage.setItem('user', JSON.stringify(user))
+      setUser(user)
+
+      toast.success(`¡Bienvenido, ${user.nombre}!`)
       return { success: true }
     } catch (error) {
       const message = error.response?.data?.error || 'Error al iniciar sesión'

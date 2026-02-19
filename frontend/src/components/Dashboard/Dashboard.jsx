@@ -21,7 +21,19 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     try {
       const response = await dashboardAPI.getMetrics()
-      setMetrics(response.data)
+      const data = response.data
+
+      // Map backend nested structure to frontend flat structure
+      setMetrics({
+        miembros_activos: data.clientes?.activos || 0,
+        membresias_activas: data.clientes?.con_membresia || 0,
+        ingresos_mes: data.ventas?.ingresos_mes || 0,
+        asistencias_hoy: data.clientes?.asistencias_hoy || 0,
+        // Trends are not currently returned by this endpoint
+        tendencia_miembros: 0,
+        tendencia_ingresos: 0,
+        tendencia_asistencias: 0
+      })
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
       toast.error('Error al cargar datos del dashboard')
@@ -70,7 +82,7 @@ const Dashboard = () => {
           trend={data.tendencia_miembros}
           color="blue"
         />
-        
+
         <MetricCard
           title="Membresías Activas"
           value={data.membresias_activas || 0}
@@ -78,7 +90,7 @@ const Dashboard = () => {
           trend={data.tendencia_membresias}
           color="green"
         />
-        
+
         <MetricCard
           title="Ingresos del Mes"
           value={data.ingresos_mes || 0}
@@ -87,7 +99,7 @@ const Dashboard = () => {
           color="purple"
           format="currency"
         />
-        
+
         <MetricCard
           title="Asistencias Hoy"
           value={data.asistencias_hoy || 0}

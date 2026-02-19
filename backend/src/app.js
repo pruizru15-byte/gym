@@ -32,12 +32,13 @@ const HOST = '0.0.0.0'; // Listen on all interfaces for LAN access
 
 // Middleware
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Static files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/backups', express.static(path.join(__dirname, '../backups')));
+app.use('/media', express.static(path.join(__dirname, '../media')));
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -54,8 +55,8 @@ app.use('/api/configuracion', configuracionRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
-    res.json({ 
-        status: 'ok', 
+    res.json({
+        status: 'ok',
         timestamp: new Date().toISOString(),
         database: db ? 'connected' : 'disconnected'
     });
@@ -94,15 +95,15 @@ app.use(errorHandler);
 // Start server
 app.listen(PORT, HOST, () => {
     displayServerInfo(PORT);
-    
+
     // Initialize scheduled services
     console.log('🔧 Initializing scheduled services...');
-    notificacionesService.startDailyNotifications();
+    notificacionesService.iniciarCronJob();
     console.log('✅ Notifications service started (runs daily at midnight)');
-    
-    backupService.startAutomaticBackups();
+
+    backupService.iniciarBackupsAutomaticos();
     console.log('✅ Backup service started (check configuration for schedule)');
-    
+
     console.log('\n📚 API Documentation: See docs/API.md');
     console.log('👤 Default credentials: username=admin, password=admin123\n');
 });

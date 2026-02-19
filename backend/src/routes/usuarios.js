@@ -6,13 +6,26 @@ const roleCheck = require('../middleware/roleCheck');
 
 // All routes require authentication and admin role
 router.use(auth);
-router.use(roleCheck('admin'));
+// Middleware to allow admin or self
+const allowSelfOrAdmin = (req, res, next) => {
+    if (req.user.rol === 'admin' || req.user.id === parseInt(req.params.id)) {
+        next();
+    } else {
+        res.status(403).json({ error: 'Access denied' });
+    }
+};
 
-router.get('/', usuariosController.getAllUsuarios);
-router.get('/:id', usuariosController.getUsuarioById);
-router.post('/', usuariosController.createUsuario);
-router.put('/:id', usuariosController.updateUsuario);
-router.post('/:id/reset-password', usuariosController.resetPassword);
-router.delete('/:id', usuariosController.deleteUsuario);
+const upload = require('../middleware/upload');
+
+// Admin only routes
+router.get('/', roleCheck('admin'), usuariosController.getAllUsuarios);
+router.post('/', roleCheck('admin'), upload.single('foto'), usuariosController.createUsuario);
+router.delete('/:id', roleCheck('admin'), usuariosController.deleteUsuario);
+
+// Owner or Admin routes
+router.get('/audit-logs', usuariosController.getAuditLogs); // Controller handles permission check
+router.get('/:id', allowSelfOrAdmin, usuariosController.getUsuarioById);
+router.put('/:id', allowSelfOrAdmin, upload.single('foto'), usuariosController.updateUsuario);
+router.post('/:id/reset-password', allowSelfOrAdmin, usuariosController.resetPassword);
 
 module.exports = router;
