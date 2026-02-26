@@ -17,13 +17,15 @@ const RenovarMembresia = () => {
   const [planes, setPlanes] = useState([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  
+
   const [formData, setFormData] = useState({
     planId: '',
     fechaInicio: '',
     metodoPago: 'efectivo',
     monto: '',
     notas: '',
+    isCuotas: false,
+    numCuotas: 2
   })
   const [errors, setErrors] = useState({})
 
@@ -43,11 +45,15 @@ const RenovarMembresia = () => {
       // Load current active membership
       try {
         const membresiaRes = await membershipsAPI.getActive(miembroId)
-        const membresiaData = membresiaRes.data.membresia || membresiaRes.data
+        // Handle response which might be an object or an array
+        const rawData = membresiaRes.data.membresia || membresiaRes.data
+        // If it's an array, take the first one (most recent), otherwise take the object
+        const membresiaData = Array.isArray(rawData) ? rawData[0] : rawData
+
         setMembresiaActual(membresiaData)
-        
+
         // Set default start date as the day after expiration
-        if (membresiaData.fechaVencimiento) {
+        if (membresiaData && membresiaData.fechaVencimiento) {
           const nextDay = new Date(membresiaData.fechaVencimiento)
           nextDay.setDate(nextDay.getDate() + 1)
           setFormData(prev => ({
@@ -92,7 +98,7 @@ const RenovarMembresia = () => {
   const handleChange = (e) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
-    
+
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }))
     }
@@ -101,23 +107,32 @@ const RenovarMembresia = () => {
   // Calculate new expiration date
   const getNewExpirationDate = () => {
     if (!formData.planId || !formData.fechaInicio) return null
-    
+
     const plan = planes.find(p => p.id === parseInt(formData.planId))
     if (!plan) return null
 
     const startDate = new Date(formData.fechaInicio)
     const newDate = new Date(startDate)
 
-    switch (plan.tipoDuracion) {
-      case 'dias':
-        newDate.setDate(newDate.getDate() + plan.duracion)
-        break
-      case 'meses':
-        newDate.setMonth(newDate.getMonth() + plan.duracion)
-        break
-      case 'años':
-        newDate.setFullYear(newDate.getFullYear() + plan.duracion)
-        break
+    // Use duracion_dias if available (standard from backend)
+    if (plan.duracion_dias) {
+      newDate.setDate(newDate.getDate() + plan.duracion_dias)
+    } else if (plan.duracion && plan.tipoDuracion) {
+      // Fallback for types (though backend only has duracion_dias now)
+      switch (plan.tipoDuracion) {
+        case 'dias':
+          newDate.setDate(newDate.getDate() + plan.duracion)
+          break
+        case 'meses':
+          newDate.setMonth(newDate.getMonth() + plan.duracion)
+          break
+        case 'años':
+          newDate.setFullYear(newDate.getFullYear() + plan.duracion)
+          break
+      }
+    } else {
+      // Fallback interpretation if only duration is present
+      newDate.setDate(newDate.getDate() + (plan.duracion || 30))
     }
 
     return newDate
@@ -157,35 +172,33 @@ const RenovarMembresia = () => {
     setSubmitting(true)
     try {
       const newExpirationDate = getNewExpirationDate()
-      
-      // Create new membership
-      const membresiaData = {
-        miembroId: parseInt(miembroId),
-        planId: parseInt(formData.planId),
-        fechaInicio: formData.fechaInicio,
-        fechaVencimiento: newExpirationDate.toISOString().split('T')[0],
-        activa: true,
-      }
-      
-      const membresiaRes = await membershipsAPI.create(membresiaData)
-      const newMembresia = membresiaRes.data.membresia || membresiaRes.data
 
-      // Register payment
-      const pagoData = {
-        membresiaId: newMembresia.id,
-        monto: parseFloat(formData.monto),
-        metodoPago: formData.metodoPago,
-        fechaPago: new Date().toISOString(),
-        concepto: 'Renovación de membresía',
+      // Create new membership assignment
+      // The backend endpoint (membresias/asignar) handles both the membership assignment
+      // and the payment record creation in a single transaction
+      const upgradeData = {
+        cliente_id: parseInt(miembroId),
+        membresia_id: parseInt(formData.planId),
+        fecha_inicio: formData.fechaInicio,
+        precio_pagado: formData.isCuotas ? parseFloat(formData.monto) : parseFloat(formData.monto),
+        metodo_pago: formData.metodoPago,
         notas: formData.notas,
+        es_cuotas: formData.isCuotas,
+        num_cuotas: formData.isCuotas ? parseInt(formData.numCuotas) : undefined
       }
-      
-      await paymentsAPI.create(pagoData)
+
+      const res = await membershipsAPI.create(upgradeData)
 
       toast.success('Membresía renovada correctamente')
-      navigate(`/clientes/${miembroId}`)
+
+      if (res.data?.data?.pago_id) {
+        navigate('/pagos/historial', { state: { showReceiptId: res.data.data.pago_id } })
+      } else {
+        navigate(`/clientes/${miembroId}`)
+      }
     } catch (error) {
-      const message = error.response?.data?.message || 'Error al renovar membresía'
+      console.error('Error renewing membership:', error)
+      const message = error.response?.data?.error || 'Error al renovar membresía'
       toast.error(message)
     } finally {
       setSubmitting(false)
@@ -214,7 +227,7 @@ const RenovarMembresia = () => {
           <ArrowLeft size={20} />
           Volver al cliente
         </button>
-        
+
         <div className="flex items-center gap-4">
           <div className="h-16 w-16 rounded-full bg-primary-100 flex items-center justify-center">
             <RefreshCw className="text-primary-600" size={24} />
@@ -233,26 +246,31 @@ const RenovarMembresia = () => {
             <div className="p-6 space-y-6">
               {/* Current Membership Info */}
               {membresiaActual && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                  <h3 className="font-semibold text-yellow-900 mb-2 flex items-center gap-2">
-                    <AlertCircle size={18} />
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-5 shadow-sm">
+                  <h3 className="font-semibold text-blue-900 mb-3 flex items-center gap-2 text-lg">
+                    <AlertCircle size={20} />
                     Membresía Actual
                   </h3>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
                     <div>
-                      <p className="text-yellow-700">Plan</p>
-                      <p className="font-semibold text-yellow-900">{membresiaActual.planNombre}</p>
+                      <p className="text-blue-700 font-medium mb-1">Plan Actual</p>
+                      <p className="font-bold text-blue-900 text-lg">{membresiaActual.planNombre || membresiaActual.membresia_nombre}</p>
                     </div>
                     <div>
-                      <p className="text-yellow-700">Vencimiento</p>
-                      <p className="font-semibold text-yellow-900">{formatDate(membresiaActual.fechaVencimiento)}</p>
-                      {daysUntil(membresiaActual.fechaVencimiento) !== null && (
-                        <p className="text-xs text-yellow-700 mt-1">
-                          {daysUntil(membresiaActual.fechaVencimiento) >= 0
-                            ? `${daysUntil(membresiaActual.fechaVencimiento)} días restantes`
-                            : `Venció hace ${Math.abs(daysUntil(membresiaActual.fechaVencimiento))} días`}
-                        </p>
-                      )}
+                      <p className="text-blue-700 font-medium mb-1">Fecha de Vencimiento</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-blue-900 text-lg">{formatDate(membresiaActual.fechaVencimiento || membresiaActual.fecha_vencimiento)}</p>
+                        {daysUntil(membresiaActual.fechaVencimiento || membresiaActual.fecha_vencimiento) !== null && (
+                          <span className={`px-2 py-1 text-xs font-bold rounded-full ${daysUntil(membresiaActual.fechaVencimiento || membresiaActual.fecha_vencimiento) >= 0
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
+                            }`}>
+                            {daysUntil(membresiaActual.fechaVencimiento || membresiaActual.fecha_vencimiento) >= 0
+                              ? `${daysUntil(membresiaActual.fechaVencimiento || membresiaActual.fecha_vencimiento)} días restantes`
+                              : `Venció hace ${Math.abs(daysUntil(membresiaActual.fechaVencimiento || membresiaActual.fecha_vencimiento))} días`}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -269,11 +287,10 @@ const RenovarMembresia = () => {
                       key={plan.id}
                       type="button"
                       onClick={() => handlePlanSelect(plan.id.toString())}
-                      className={`p-4 border-2 rounded-lg text-left transition ${
-                        formData.planId === plan.id.toString()
-                          ? 'border-primary-500 bg-primary-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
+                      className={`p-4 border-2 rounded-lg text-left transition ${formData.planId === plan.id.toString()
+                        ? 'border-primary-500 bg-primary-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                        }`}
                     >
                       <div className="flex items-center justify-between mb-2">
                         <h4 className="font-semibold text-gray-900">{plan.nombre}</h4>
@@ -310,9 +327,8 @@ const RenovarMembresia = () => {
                     name="fechaInicio"
                     value={formData.fechaInicio}
                     onChange={handleChange}
-                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                      errors.fechaInicio ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${errors.fechaInicio ? 'border-red-500' : 'border-gray-300'
+                      }`}
                   />
                 </div>
                 {errors.fechaInicio && (
@@ -341,37 +357,95 @@ const RenovarMembresia = () => {
                 </select>
               </div>
 
-              {/* Amount */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Monto a Pagar *
-                </label>
-                <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                  <input
-                    type="number"
-                    step="0.01"
-                    name="monto"
-                    value={formData.monto}
-                    onChange={handleChange}
-                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                      errors.monto ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                    placeholder="0.00"
-                  />
+              {/* Installments / Cuotas Option */}
+              <div className="bg-gray-50 border border-gray-200 p-4 rounded-xl">
+                <h4 className="font-semibold text-gray-800 mb-4">Opciones de Pago</h4>
+
+                <div className="flex flex-col sm:flex-row gap-6">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="tipoPago"
+                      checked={!formData.isCuotas}
+                      onChange={() => setFormData({ ...formData, isCuotas: false })}
+                      className="w-4 h-4 text-primary-600 focus:ring-primary-500"
+                    />
+                    <span className="text-gray-700 font-medium">Pago Completado</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="tipoPago"
+                      checked={formData.isCuotas}
+                      onChange={() => setFormData({ ...formData, isCuotas: true })}
+                      className="w-4 h-4 text-primary-600 focus:ring-primary-500"
+                    />
+                    <span className="text-gray-700 font-medium">Pagar en Cuotas</span>
+                  </label>
                 </div>
-                {errors.monto && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                    <AlertCircle size={14} />
-                    {errors.monto}
-                  </p>
-                )}
-                {formData.monto && !errors.monto && (
-                  <p className="mt-1 text-sm text-gray-500">
-                    {formatCurrency(parseFloat(formData.monto))}
-                  </p>
+
+                {formData.isCuotas && (
+                  <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Número de Cuotas</label>
+                      <input
+                        type="number"
+                        min="2"
+                        max="12"
+                        value={formData.numCuotas}
+                        onChange={(e) => setFormData({ ...formData, numCuotas: parseInt(e.target.value) || 2 })}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                        required
+                      />
+                    </div>
+                    <div className="flex flex-col justify-center">
+                      <p className="text-sm font-medium text-gray-700">Monto Primera Cuota (Hoy):</p>
+                      <p className="text-lg font-bold text-primary-600">
+                        {formData.monto && formData.numCuotas
+                          ? formatCurrency(parseFloat(formData.monto) / formData.numCuotas)
+                          : '-'}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        (Las siguientes cuotas se cargarán como pendientes)
+                      </p>
+                    </div>
+                  </div>
                 )}
               </div>
+
+              {/* Amount */}
+              {!formData.isCuotas && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Monto a Pagar (Hoy) *
+                  </label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                    <input
+                      type="number"
+                      step="0.01"
+                      name="monto"
+                      value={formData.monto}
+                      onChange={handleChange}
+                      className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${errors.monto ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  {errors.monto && (
+                    <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                      <AlertCircle size={14} />
+                      {errors.monto}
+                    </p>
+                  )}
+                  {formData.monto && !errors.monto && (
+                    <p className="mt-1 text-sm text-gray-500">
+                      {formatCurrency(parseFloat(formData.monto))}
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Notes */}
               <div>
@@ -424,7 +498,7 @@ const RenovarMembresia = () => {
         <div className="lg:col-span-1">
           <div className="bg-white rounded-lg shadow-sm p-6 sticky top-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Resumen</h3>
-            
+
             <div className="space-y-4">
               {/* Client Info */}
               <div className="flex items-center gap-3 pb-4 border-b border-gray-200">

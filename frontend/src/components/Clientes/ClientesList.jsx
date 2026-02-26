@@ -29,6 +29,7 @@ const ClientesList = () => {
         search: searchTerm || undefined,
         sortBy: sortField,
         sortOrder: sortOrder,
+        estado_membresia: filterStatus !== 'all' ? filterStatus : undefined
       }
 
       const response = await membersAPI.getAll(params)
@@ -45,6 +46,11 @@ const ClientesList = () => {
   }
 
   useEffect(() => {
+    // Reset to page 1 when filters change
+    setCurrentPage(1)
+  }, [searchTerm, filterStatus])
+
+  useEffect(() => {
     const delayDebounce = setTimeout(() => {
       fetchClientes()
     }, 300)
@@ -52,17 +58,8 @@ const ClientesList = () => {
     return () => clearTimeout(delayDebounce)
   }, [searchTerm, filterStatus, sortField, sortOrder, currentPage])
 
-  // Filter clients by status
-  const filteredClientes = clientes.filter(cliente => {
-    if (filterStatus === 'all') return true
-    if (filterStatus === 'active') return cliente.membresiaActiva
-    if (filterStatus === 'inactive') return !cliente.membresiaActiva
-    if (filterStatus === 'expiring') {
-      const days = daysUntil(cliente.fechaVencimiento)
-      return days !== null && days >= 0 && days <= 7
-    }
-    return true
-  })
+  // Filter is now handled by backend
+  const filteredClientes = clientes
 
   // Handle sort
   const handleSort = (field) => {
@@ -192,7 +189,7 @@ const ClientesList = () => {
                             <User className="text-primary-600" size={20} />
                           </div>
                           <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">{cliente.nombre}</div>
+                            <div className="text-sm font-medium text-gray-900">{cliente.nombre} {cliente.apellido}</div>
                             <div className="text-sm text-gray-500">ID: {cliente.id}</div>
                           </div>
                         </div>
@@ -229,6 +226,12 @@ const ClientesList = () => {
                         {getStatusBadge(cliente)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <Link
+                          to={`/clientes/${cliente.id}/editar`}
+                          className="text-indigo-600 hover:text-indigo-900 mr-4"
+                        >
+                          Editar
+                        </Link>
                         <Link
                           to={`/clientes/${cliente.id}`}
                           className="text-primary-600 hover:text-primary-900 mr-4"

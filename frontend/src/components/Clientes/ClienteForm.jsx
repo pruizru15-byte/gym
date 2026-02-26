@@ -12,10 +12,13 @@ const ClienteForm = () => {
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     nombre: '',
+    apellido: '',
     email: '',
     telefono: '',
     fechaNacimiento: '',
     direccion: '',
+    condicionesMedicas: '',
+    alergias: '',
     emergenciaContacto: '',
     emergenciaTelefono: '',
     notas: '',
@@ -34,20 +37,23 @@ const ClienteForm = () => {
     try {
       const response = await membersAPI.getById(id)
       const cliente = response.data.miembro || response.data
-      
+
       // Format date for input
-      const fechaNacimiento = cliente.fechaNacimiento 
+      const fechaNacimiento = cliente.fechaNacimiento
         ? new Date(cliente.fechaNacimiento).toISOString().split('T')[0]
         : ''
-      
+
       setFormData({
         nombre: cliente.nombre || '',
+        apellido: cliente.apellido || '',
         email: cliente.email || '',
         telefono: cliente.telefono || '',
         fechaNacimiento,
         direccion: cliente.direccion || '',
-        emergenciaContacto: cliente.emergenciaContacto || '',
-        emergenciaTelefono: cliente.emergenciaTelefono || '',
+        condicionesMedicas: cliente.condiciones_medicas || cliente.condicionesMedicas || '',
+        alergias: cliente.alergias || '',
+        emergenciaContacto: cliente.contacto_emergencia || cliente.emergenciaContacto || '', // Handle snake_case from DB
+        emergenciaTelefono: cliente.telefono_emergencia || cliente.emergenciaTelefono || '', // Handle snake_case from DB
         notas: cliente.notas || '',
       })
     } catch (error) {
@@ -62,7 +68,7 @@ const ClienteForm = () => {
   const handleChange = (e) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
-    
+
     // Clear error for this field
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }))
@@ -75,6 +81,10 @@ const ClienteForm = () => {
 
     if (!formData.nombre.trim()) {
       newErrors.nombre = 'El nombre es requerido'
+    }
+
+    if (!formData.apellido.trim()) {
+      newErrors.apellido = 'El apellido es requerido'
     }
 
     if (!formData.email.trim()) {
@@ -117,7 +127,13 @@ const ClienteForm = () => {
         await membersAPI.update(id, formData)
         toast.success('Cliente actualizado correctamente')
       } else {
-        await membersAPI.create(formData)
+        // Generate a temporary code if one doesn't exist to satisfy backend validation
+        // (This handles cases where the backend hasn't been restarted with the new auto-generation logic)
+        const payload = {
+          ...formData,
+          codigo: formData.codigo || `CLI-${Date.now()}-${Math.floor(Math.random() * 1000)}`
+        };
+        await membersAPI.create(payload)
         toast.success('Cliente creado correctamente')
       }
       navigate('/clientes')
@@ -152,7 +168,7 @@ const ClienteForm = () => {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Name */}
-              <div className="md:col-span-2">
+              <div className="md:col-span-1">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Nombre completo *
                 </label>
@@ -161,15 +177,36 @@ const ClienteForm = () => {
                   name="nombre"
                   value={formData.nombre}
                   onChange={handleChange}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                    errors.nombre ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="Ej: Juan Pérez García"
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${errors.nombre ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  placeholder="Ej: Juan"
                 />
                 {errors.nombre && (
                   <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
                     <AlertCircle size={14} />
                     {errors.nombre}
+                  </p>
+                )}
+              </div>
+
+              {/* Last Name */}
+              <div className="md:col-span-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Apellido *
+                </label>
+                <input
+                  type="text"
+                  name="apellido"
+                  value={formData.apellido}
+                  onChange={handleChange}
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${errors.apellido ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  placeholder="Ej: Pérez García"
+                />
+                {errors.apellido && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                    <AlertCircle size={14} />
+                    {errors.apellido}
                   </p>
                 )}
               </div>
@@ -186,9 +223,8 @@ const ClienteForm = () => {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                      errors.email ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${errors.email ? 'border-red-500' : 'border-gray-300'
+                      }`}
                     placeholder="ejemplo@email.com"
                   />
                 </div>
@@ -212,9 +248,8 @@ const ClienteForm = () => {
                     name="telefono"
                     value={formData.telefono}
                     onChange={handleChange}
-                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                      errors.telefono ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${errors.telefono ? 'border-red-500' : 'border-gray-300'
+                      }`}
                     placeholder="5512345678"
                   />
                 </div>
@@ -238,9 +273,8 @@ const ClienteForm = () => {
                     name="fechaNacimiento"
                     value={formData.fechaNacimiento}
                     onChange={handleChange}
-                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                      errors.fechaNacimiento ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${errors.fechaNacimiento ? 'border-red-500' : 'border-gray-300'
+                      }`}
                   />
                 </div>
                 {errors.fechaNacimiento && (
@@ -267,6 +301,45 @@ const ClienteForm = () => {
                     placeholder="Calle, número, colonia, ciudad"
                   />
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Medical Information Section */}
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <AlertCircle size={20} />
+              Información Médica
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Medical Conditions */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Condiciones Médicas
+                </label>
+                <textarea
+                  name="condicionesMedicas"
+                  value={formData.condicionesMedicas}
+                  onChange={handleChange}
+                  rows={2}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="Lesiones, enfermedades crónicas, etc."
+                />
+              </div>
+
+              {/* Allergies */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Alergias
+                </label>
+                <textarea
+                  name="alergias"
+                  value={formData.alergias}
+                  onChange={handleChange}
+                  rows={2}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="Medicamentos, alimentos, etc."
+                />
               </div>
             </div>
           </div>
@@ -306,7 +379,7 @@ const ClienteForm = () => {
                     value={formData.emergenciaTelefono}
                     onChange={handleChange}
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="5512345678"
+                    placeholder="Contacto de emergencia"
                   />
                 </div>
               </div>

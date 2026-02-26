@@ -33,17 +33,30 @@ const MembresiaForm = () => {
     try {
       const response = await plansAPI.getById(id)
       const plan = response.data.plan || response.data
-      
+
+      // Reverse calculate duration type from days
+      let duracion = plan.duracion_dias
+      let tipoDuracion = 'dias'
+
+      if (plan.duracion_dias % 365 === 0) {
+        duracion = plan.duracion_dias / 365
+        tipoDuracion = 'años'
+      } else if (plan.duracion_dias % 30 === 0) {
+        duracion = plan.duracion_dias / 30
+        tipoDuracion = 'meses'
+      }
+
       setFormData({
         nombre: plan.nombre || '',
         descripcion: plan.descripcion || '',
         precio: plan.precio || '',
-        duracion: plan.duracion || '',
-        tipoDuracion: plan.tipoDuracion || 'meses',
+        duracion: duracion.toString(),
+        tipoDuracion: tipoDuracion,
         activo: plan.activo !== undefined ? plan.activo : true,
       })
     } catch (error) {
       toast.error('Error al cargar plan')
+      console.error('Error loading plan:', error)
       navigate('/membresias')
     } finally {
       setLoading(false)
@@ -52,19 +65,16 @@ const MembresiaForm = () => {
 
   // Handle input change
   const handleChange = (e) => {
-    const { name, value, type } = e.target
-    
+    const { name, value } = e.target
+
     let finalValue = value
     if (name === 'precio' || name === 'duracion') {
       // Only allow numbers and decimal point for precio
       finalValue = value.replace(/[^\d.]/g, '')
-      if (name === 'duracion') {
-        finalValue = value.replace(/[^\d]/g, '')
-      }
     }
-    
+
     setFormData(prev => ({ ...prev, [name]: finalValue }))
-    
+
     // Clear error for this field
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }))
@@ -74,6 +84,17 @@ const MembresiaForm = () => {
   // Toggle active status
   const toggleActivo = () => {
     setFormData(prev => ({ ...prev, activo: !prev.activo }))
+  }
+
+  // Calculate duration in days
+  const calculateDays = (duration, type) => {
+    const d = parseInt(duration) || 0
+    switch (type) {
+      case 'dias': return d
+      case 'meses': return d * 30
+      case 'años': return d * 365
+      default: return d
+    }
   }
 
   // Validate form
@@ -111,10 +132,14 @@ const MembresiaForm = () => {
 
     setLoading(true)
     try {
+      const duracionDias = calculateDays(formData.duracion, formData.tipoDuracion)
+
       const submitData = {
-        ...formData,
+        nombre: formData.nombre,
+        descripcion: formData.descripcion,
         precio: parseFloat(formData.precio),
-        duracion: parseInt(formData.duracion),
+        duracion_dias: duracionDias,
+        activo: formData.activo
       }
 
       if (isEditing) {
@@ -126,7 +151,8 @@ const MembresiaForm = () => {
       }
       navigate('/membresias')
     } catch (error) {
-      const message = error.response?.data?.message || 'Error al guardar plan'
+      console.error('Error saving plan:', error)
+      const message = error.response?.data?.error || 'Error al guardar plan'
       toast.error(message)
     } finally {
       setLoading(false)
@@ -136,12 +162,8 @@ const MembresiaForm = () => {
   // Calculate price per day for preview
   const getPricePerDay = () => {
     if (!formData.precio || !formData.duracion) return null
-    
-    const days = {
-      dias: parseInt(formData.duracion),
-      meses: parseInt(formData.duracion) * 30,
-      años: parseInt(formData.duracion) * 365,
-    }[formData.tipoDuracion] || 0
+
+    const days = calculateDays(formData.duracion, formData.tipoDuracion)
 
     return days > 0 ? parseFloat(formData.precio) / days : 0
   }
@@ -180,9 +202,8 @@ const MembresiaForm = () => {
                   name="nombre"
                   value={formData.nombre}
                   onChange={handleChange}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                    errors.nombre ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${errors.nombre ? 'border-red-500' : 'border-gray-300'
+                    }`}
                   placeholder="Ej: Membresía Mensual, Anual Premium"
                 />
                 {errors.nombre && (
@@ -205,9 +226,8 @@ const MembresiaForm = () => {
                     name="precio"
                     value={formData.precio}
                     onChange={handleChange}
-                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                      errors.precio ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${errors.precio ? 'border-red-500' : 'border-gray-300'
+                      }`}
                     placeholder="0.00"
                   />
                 </div>
@@ -232,11 +252,10 @@ const MembresiaForm = () => {
                 <button
                   type="button"
                   onClick={toggleActivo}
-                  className={`w-full flex items-center justify-between px-4 py-2 border rounded-lg transition ${
-                    formData.activo
+                  className={`w-full flex items-center justify-between px-4 py-2 border rounded-lg transition ${formData.activo
                       ? 'bg-green-50 border-green-300 text-green-700'
                       : 'bg-gray-50 border-gray-300 text-gray-700'
-                  }`}
+                    }`}
                 >
                   <span className="font-medium">
                     {formData.activo ? 'Activo' : 'Inactivo'}
@@ -266,9 +285,8 @@ const MembresiaForm = () => {
                     name="duracion"
                     value={formData.duracion}
                     onChange={handleChange}
-                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                      errors.duracion ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${errors.duracion ? 'border-red-500' : 'border-gray-300'
+                      }`}
                     placeholder="1"
                   />
                 </div>

@@ -25,6 +25,7 @@ const maquinasRoutes = require('./routes/maquinas');
 const notificacionesRoutes = require('./routes/notificaciones');
 const metricasRoutes = require('./routes/metricas');
 const configuracionRoutes = require('./routes/configuracion');
+const pagosRoutes = require('./routes/pagos');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -52,6 +53,7 @@ app.use('/api/maquinas', maquinasRoutes);
 app.use('/api/notificaciones', notificacionesRoutes);
 app.use('/api/metricas', metricasRoutes);
 app.use('/api/configuracion', configuracionRoutes);
+app.use('/api/pagos', pagosRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -79,6 +81,7 @@ app.get('/', (req, res) => {
             notificaciones: '/api/notificaciones',
             metricas: '/api/metricas',
             configuracion: '/api/configuracion',
+            pagos: '/api/pagos',
             health: '/api/health'
         }
     });

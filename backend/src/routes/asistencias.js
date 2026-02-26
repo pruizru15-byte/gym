@@ -24,4 +24,10 @@ router.post('/checkin', asistenciasController.checkIn);
 // Check-in client by QR code
 router.post('/checkin-codigo', asistenciasController.checkInByCode);
 
+// Check-out client by ID
+router.post('/checkout', asistenciasController.checkOut);
+
+// Check-out client by QR code
+router.post('/checkout-codigo', asistenciasController.checkOutByCode);
+
 module.exports = router;

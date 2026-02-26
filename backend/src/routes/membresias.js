@@ -15,6 +15,9 @@ router.get('/por-vencer', membresiasController.getExpiring);
 // Get expired memberships
 router.get('/vencidas', membresiasController.getExpired);
 
+// Get all assignments (paginated)
+router.get('/asignaciones', membresiasController.getAllAssignments);
+
 // Get membership by ID
 router.get('/:id', membresiasController.getById);
 
@@ -32,5 +35,8 @@ router.put('/:id', membresiasController.update);
 
 // Delete (deactivate) membership plan
 router.delete('/:id', membresiasController.remove);
+
+// Toggle membership status
+router.patch('/:id/toggle', membresiasController.toggleStatus);
 
 module.exports = router;

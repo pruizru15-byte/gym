@@ -8,7 +8,7 @@ const getAll = (req, res) => {
     try {
         const { page = 1, limit = 50, fecha, cliente_id } = req.query;
         const offset = (page - 1) * limit;
-        
+
         let query = `
             SELECT a.*, 
                    c.codigo, c.nombre as cliente_nombre, c.apellido as cliente_apellido,
@@ -19,36 +19,36 @@ const getAll = (req, res) => {
             WHERE 1=1
         `;
         const params = [];
-        
+
         if (fecha) {
-            query += ' AND date(a.fecha_hora) = ?';
+            query += " AND date(a.fecha_hora, 'localtime') = ?";
             params.push(fecha);
         }
-        
+
         if (cliente_id) {
             query += ' AND a.cliente_id = ?';
             params.push(cliente_id);
         }
-        
+
         query += ' ORDER BY a.fecha_hora DESC LIMIT ? OFFSET ?';
         params.push(parseInt(limit), offset);
-        
+
         const asistencias = db.prepare(query).all(...params);
-        
+
         // Get total count
         let countQuery = 'SELECT COUNT(*) as total FROM asistencias WHERE 1=1';
         const countParams = [];
         if (fecha) {
-            countQuery += ' AND date(fecha_hora) = ?';
+            countQuery += " AND date(fecha_hora, 'localtime') = ?";
             countParams.push(fecha);
         }
         if (cliente_id) {
             countQuery += ' AND cliente_id = ?';
             countParams.push(cliente_id);
         }
-        
+
         const { total } = db.prepare(countQuery).get(...countParams);
-        
+
         res.json({
             asistencias,
             pagination: {
@@ -70,26 +70,26 @@ const getAll = (req, res) => {
 const checkIn = (req, res) => {
     try {
         const { cliente_id } = req.body;
-        
+
         if (!cliente_id) {
             return res.status(400).json({ error: 'Client ID is required' });
         }
-        
+
         // Get client info
         const cliente = db.prepare(`
             SELECT id, codigo, nombre, apellido, activo
             FROM clientes
             WHERE id = ?
         `).get(cliente_id);
-        
+
         if (!cliente) {
             return res.status(404).json({ error: 'Client not found' });
         }
-        
+
         if (!cliente.activo) {
             return res.status(400).json({ error: 'Client is inactive' });
         }
-        
+
         // Check if client has active membership
         const membresia = db.prepare(`
             SELECT cm.*, m.nombre as membresia_nombre
@@ -101,9 +101,9 @@ const checkIn = (req, res) => {
             ORDER BY cm.fecha_vencimiento DESC
             LIMIT 1
         `).get(cliente_id);
-        
+
         if (!membresia) {
-            return res.status(403).json({ 
+            return res.status(403).json({
                 error: 'Client does not have an active membership',
                 cliente: {
                     codigo: cliente.codigo,
@@ -112,45 +112,35 @@ const checkIn = (req, res) => {
                 }
             });
         }
-        
+
         // Check if already checked in today
         const today = formatDate(new Date());
+
         const existingCheckIn = db.prepare(`
             SELECT id FROM asistencias
-            WHERE cliente_id = ? AND date(fecha_hora) = ?
+            WHERE cliente_id = ? AND date(fecha_hora, 'localtime') = ?
         `).get(cliente_id, today);
-        
+
         if (existingCheckIn) {
-            return res.status(400).json({ 
-                error: 'Client already checked in today',
-                cliente: {
-                    codigo: cliente.codigo,
-                    nombre: cliente.nombre,
-                    apellido: cliente.apellido
-                },
-                membresia: {
-                    nombre: membresia.membresia_nombre,
-                    fecha_vencimiento: membresia.fecha_vencimiento
-                }
-            });
+            return res.status(400).json({ error: 'El cliente ya registró su asistencia el día de hoy' });
         }
-        
+
         // Register check-in
         const result = db.prepare(`
-            INSERT INTO asistencias (cliente_id, usuario_registro_id)
-            VALUES (?, ?)
+            INSERT INTO asistencias (cliente_id, usuario_registro_id, tipo)
+            VALUES (?, ?, 'entrada')
         `).run(cliente_id, req.user.id);
-        
+
         const asistencia = db.prepare(`
             SELECT a.*, 
-                   c.codigo, c.nombre as cliente_nombre, c.apellido as cliente_apellido,
+                   c.codigo, c.nombre as cliente_nombre, c.apellido as cliente_apellido, c.foto as cliente_foto,
                    u.nombre as usuario_nombre
             FROM asistencias a
             JOIN clientes c ON a.cliente_id = c.id
             LEFT JOIN usuarios u ON a.usuario_registro_id = u.id
             WHERE a.id = ?
         `).get(result.lastInsertRowid);
-        
+
         res.status(201).json({
             ...asistencia,
             membresia: {
@@ -170,26 +160,26 @@ const checkIn = (req, res) => {
 const checkInByCode = (req, res) => {
     try {
         const { codigo } = req.body;
-        
+
         if (!codigo) {
             return res.status(400).json({ error: 'Client code is required' });
         }
-        
+
         // Get client by code
         const cliente = db.prepare(`
             SELECT id, codigo, nombre, apellido, activo
             FROM clientes
             WHERE codigo = ?
         `).get(codigo);
-        
+
         if (!cliente) {
             return res.status(404).json({ error: 'Client not found' });
         }
-        
+
         if (!cliente.activo) {
             return res.status(400).json({ error: 'Client is inactive' });
         }
-        
+
         // Use the same check-in logic
         req.body.cliente_id = cliente.id;
         return checkIn(req, res);
@@ -200,29 +190,134 @@ const checkInByCode = (req, res) => {
 };
 
 /**
+ * Explicit check-out client
+ */
+const checkOut = (req, res) => {
+    try {
+        const { cliente_id } = req.body;
+
+        if (!cliente_id) {
+            return res.status(400).json({ error: 'Client ID is required' });
+        }
+
+        const today = formatDate(new Date());
+
+        // Verify the client has an 'entrada' today
+        const entradaHoy = db.prepare(`
+            SELECT id FROM asistencias
+            WHERE cliente_id = ? AND date(fecha_hora, 'localtime') = ? AND tipo = 'entrada'
+            ORDER BY fecha_hora DESC LIMIT 1
+        `).get(cliente_id, today);
+
+        if (!entradaHoy) {
+            return res.status(400).json({ error: 'El cliente no tiene un registro de entrada el día de hoy' });
+        }
+
+        // Verify the client hasn't already checked out today
+        const salidaHoy = db.prepare(`
+            SELECT id FROM asistencias
+            WHERE cliente_id = ? AND date(fecha_hora, 'localtime') = ? AND tipo = 'salida'
+        `).get(cliente_id, today);
+
+        if (salidaHoy) {
+            return res.status(400).json({ error: 'El cliente ya registró su salida el día de hoy' });
+        }
+
+        // Register check-out
+        const result = db.prepare(`
+            INSERT INTO asistencias (cliente_id, usuario_registro_id, tipo)
+            VALUES (?, ?, 'salida')
+        `).run(cliente_id, req.user.id);
+
+        const asistencia = db.prepare(`
+            SELECT a.*, 
+                   c.codigo, c.nombre as cliente_nombre, c.apellido as cliente_apellido, c.foto as cliente_foto,
+                   u.nombre as usuario_nombre
+            FROM asistencias a
+            JOIN clientes c ON a.cliente_id = c.id
+            LEFT JOIN usuarios u ON a.usuario_registro_id = u.id
+            WHERE a.id = ?
+        `).get(result.lastInsertRowid);
+
+        // Get basic membership info for the modal
+        const membresia = db.prepare(`
+            SELECT m.nombre as membresia_nombre, cm.fecha_vencimiento
+            FROM clientes_membresias cm
+            JOIN membresias m ON cm.membresia_id = m.id
+            WHERE cm.cliente_id = ? AND cm.activo = 1 
+            ORDER BY cm.fecha_vencimiento DESC LIMIT 1
+        `).get(cliente_id);
+
+        res.status(201).json({
+            ...asistencia,
+            membresia: membresia ? {
+                nombre: membresia.membresia_nombre,
+                fecha_vencimiento: membresia.fecha_vencimiento
+            } : null
+        });
+    } catch (error) {
+        console.error('Check-out error:', error);
+        res.status(500).json({ error: 'Error registering check-out' });
+    }
+};
+
+/**
+ * Explicit check-out by QR code
+ */
+const checkOutByCode = (req, res) => {
+    try {
+        const { codigo } = req.body;
+
+        if (!codigo) {
+            return res.status(400).json({ error: 'Client code is required' });
+        }
+
+        // Get client by code
+        const cliente = db.prepare(`
+            SELECT id, activo FROM clientes WHERE codigo = ?
+        `).get(codigo);
+
+        if (!cliente) {
+            return res.status(404).json({ error: 'Client not found' });
+        }
+
+        if (!cliente.activo) {
+            return res.status(400).json({ error: 'Client is inactive' });
+        }
+
+        // Use the checkout logic
+        req.body.cliente_id = cliente.id;
+        return checkOut(req, res);
+    } catch (error) {
+        console.error('Check-out by code error:', error);
+        res.status(500).json({ error: 'Error registering check-out' });
+    }
+};
+
+/**
  * Get today's attendance
  */
 const getToday = (req, res) => {
     try {
         const today = formatDate(new Date());
-        
+
         const asistencias = db.prepare(`
             SELECT a.*, 
-                   c.codigo, c.nombre as cliente_nombre, c.apellido as cliente_apellido,
+                   c.codigo, c.nombre as cliente_nombre, c.apellido as cliente_apellido, c.foto as cliente_foto,
                    u.nombre as usuario_nombre
             FROM asistencias a
             JOIN clientes c ON a.cliente_id = c.id
             LEFT JOIN usuarios u ON a.usuario_registro_id = u.id
-            WHERE date(a.fecha_hora) = ?
+            WHERE date(a.fecha_hora, 'localtime') = ?
             ORDER BY a.fecha_hora DESC
         `).all(today);
-        
+
         // Get count
         const { total } = db.prepare(`
             SELECT COUNT(*) as total FROM asistencias
-            WHERE date(fecha_hora) = ?
+            WHERE date(fecha_hora, 'localtime') = ?
         `).get(today);
-        
+
         res.json({
             fecha: today,
             total,
@@ -240,10 +335,10 @@ const getToday = (req, res) => {
 const getStats = (req, res) => {
     try {
         const { fecha_inicio, fecha_fin } = req.query;
-        
+
         let dateFilter = '';
         const params = [];
-        
+
         if (fecha_inicio && fecha_fin) {
             dateFilter = 'WHERE date(fecha_hora) BETWEEN ? AND ?';
             params.push(fecha_inicio, fecha_fin);
@@ -251,12 +346,12 @@ const getStats = (req, res) => {
             // Default to last 30 days
             dateFilter = "WHERE fecha_hora >= datetime('now', '-30 days')";
         }
-        
+
         // Total attendance
         const { total } = db.prepare(`
             SELECT COUNT(*) as total FROM asistencias ${dateFilter}
         `).get(...params);
-        
+
         // Attendance by day
         const byDay = db.prepare(`
             SELECT date(fecha_hora) as fecha, COUNT(*) as total
@@ -264,7 +359,7 @@ const getStats = (req, res) => {
             GROUP BY date(fecha_hora)
             ORDER BY fecha DESC
         `).all(...params);
-        
+
         // Top clients
         const topClients = db.prepare(`
             SELECT c.codigo, c.nombre, c.apellido, COUNT(*) as visitas
@@ -275,7 +370,7 @@ const getStats = (req, res) => {
             ORDER BY visitas DESC
             LIMIT 10
         `).all(...params);
-        
+
         // Peak hours
         const peakHours = db.prepare(`
             SELECT strftime('%H', fecha_hora) as hora, COUNT(*) as total
@@ -283,7 +378,7 @@ const getStats = (req, res) => {
             GROUP BY hora
             ORDER BY total DESC
         `).all(...params);
-        
+
         res.json({
             total,
             byDay,
@@ -304,7 +399,7 @@ const getClientHistory = (req, res) => {
     try {
         const { cliente_id } = req.params;
         const { limit = 30 } = req.query;
-        
+
         const asistencias = db.prepare(`
             SELECT a.*, u.nombre as usuario_nombre
             FROM asistencias a
@@ -313,12 +408,12 @@ const getClientHistory = (req, res) => {
             ORDER BY a.fecha_hora DESC
             LIMIT ?
         `).all(cliente_id, parseInt(limit));
-        
+
         // Get total count
         const { total } = db.prepare(
             'SELECT COUNT(*) as total FROM asistencias WHERE cliente_id = ?'
         ).get(cliente_id);
-        
+
         res.json({
             total,
             asistencias
@@ -333,6 +428,8 @@ module.exports = {
     getAll,
     checkIn,
     checkInByCode,
+    checkOut,
+    checkOutByCode,
     getToday,
     getStats,
     getClientHistory

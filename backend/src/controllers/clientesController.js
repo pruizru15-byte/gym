@@ -8,39 +8,75 @@ const { logAction, ACTION_TYPES, ENTITY_TYPES } = require('../services/auditServ
  */
 const getAll = (req, res) => {
     try {
-        const { page = 1, limit = 20, search = '', activo = '' } = req.query;
+        const { page = 1, limit = 20, search = '', activo = '', estado_membresia = '' } = req.query;
         const offset = (page - 1) * limit;
 
-        let query = 'SELECT * FROM clientes WHERE 1=1';
+        // Base query with joins to get active membership info
+        let query = `
+            SELECT c.*, 
+                   m.nombre as planNombre, 
+                   cm.fecha_vencimiento as fechaVencimiento,
+                   (CASE WHEN cm.id IS NOT NULL THEN 1 ELSE 0 END) as membresiaActiva
+            FROM clientes c
+            LEFT JOIN clientes_membresias cm ON c.id = cm.cliente_id AND cm.activo = 1 AND cm.fecha_vencimiento >= date('now')
+            LEFT JOIN membresias m ON cm.membresia_id = m.id
+            WHERE 1=1
+        `;
+
         const params = [];
 
         if (search) {
-            query += ' AND (nombre LIKE ? OR apellido LIKE ? OR codigo LIKE ? OR email LIKE ? OR telefono LIKE ?)';
+            query += ' AND (c.nombre LIKE ? OR c.apellido LIKE ? OR c.codigo LIKE ? OR c.email LIKE ? OR c.telefono LIKE ?)';
             const searchTerm = `%${search}%`;
             params.push(searchTerm, searchTerm, searchTerm, searchTerm, searchTerm);
         }
 
         if (activo !== '') {
-            query += ' AND activo = ?';
+            query += ' AND c.activo = ?';
             params.push(activo === 'true' ? 1 : 0);
         }
 
-        query += ' ORDER BY fecha_registro DESC LIMIT ? OFFSET ?';
+        // Filter by membership status
+        if (estado_membresia === 'active') {
+            query += ' AND cm.id IS NOT NULL';
+        } else if (estado_membresia === 'inactive') {
+            query += ' AND cm.id IS NULL';
+        } else if (estado_membresia === 'expiring') {
+            query += " AND cm.id IS NOT NULL AND cm.fecha_vencimiento BETWEEN date('now') AND date('now', '+7 days')";
+        }
+
+        // Group by client ID to avoid duplicates if multiple active memberships exist (shouldn't happen but safety)
+        query += ' GROUP BY c.id';
+
+        query += ' ORDER BY c.fecha_registro DESC LIMIT ? OFFSET ?';
         params.push(parseInt(limit), offset);
 
         const clientes = db.prepare(query).all(...params);
 
         // Get total count
-        let countQuery = 'SELECT COUNT(*) as total FROM clientes WHERE 1=1';
+        let countQuery = `
+            SELECT COUNT(DISTINCT c.id) as total 
+            FROM clientes c 
+            LEFT JOIN clientes_membresias cm ON c.id = cm.cliente_id AND cm.activo = 1 AND cm.fecha_vencimiento >= date('now')
+            WHERE 1=1
+        `;
         const countParams = [];
         if (search) {
-            countQuery += ' AND (nombre LIKE ? OR apellido LIKE ? OR codigo LIKE ? OR email LIKE ? OR telefono LIKE ?)';
+            countQuery += ' AND (c.nombre LIKE ? OR c.apellido LIKE ? OR c.codigo LIKE ? OR c.email LIKE ? OR c.telefono LIKE ?)';
             const searchTerm = `%${search}%`;
             countParams.push(searchTerm, searchTerm, searchTerm, searchTerm, searchTerm);
         }
         if (activo !== '') {
-            countQuery += ' AND activo = ?';
+            countQuery += ' AND c.activo = ?';
             countParams.push(activo === 'true' ? 1 : 0);
+        }
+
+        if (estado_membresia === 'active') {
+            countQuery += ' AND cm.id IS NOT NULL';
+        } else if (estado_membresia === 'inactive') {
+            countQuery += ' AND cm.id IS NULL';
+        } else if (estado_membresia === 'expiring') {
+            countQuery += " AND cm.id IS NOT NULL AND cm.fecha_vencimiento BETWEEN date('now') AND date('now', '+7 days')";
         }
 
         const { total } = db.prepare(countQuery).get(...countParams);
@@ -63,7 +99,7 @@ const getAll = (req, res) => {
 /**
  * Get client by ID with membership info
  */
-const getById = (req, res) => {
+const getById = async (req, res) => {
     try {
         const { id } = req.params;
 
@@ -71,6 +107,13 @@ const getById = (req, res) => {
 
         if (!cliente) {
             return res.status(404).json({ error: 'Client not found' });
+        }
+
+        // Auto-generate QR code for legacy clients without one
+        if (!cliente.qr_code && cliente.codigo) {
+            const newQr = await generateClientQR(cliente.codigo);
+            db.prepare('UPDATE clientes SET qr_code = ? WHERE id = ?').run(newQr, id);
+            cliente.qr_code = newQr;
         }
 
         // Get active membership
@@ -135,11 +178,15 @@ const getByCode = (req, res) => {
     }
 };
 
+const { generateClientCode } = require('../utils/codeUtils');
+
 /**
  * Create new client
  */
 const create = async (req, res) => {
     try {
+        console.log('🔹 CREATE CLIENT REQUEST BODY:', JSON.stringify(req.body, null, 2));
+
         const {
             codigo,
             nombre,
@@ -153,22 +200,59 @@ const create = async (req, res) => {
             alergias,
             contacto_emergencia,
             telefono_emergencia,
-            notas
+            notas,
+            // Allow camelCase inputs too
+            fechaNacimiento,
+            condicionesMedicas,
+            contactoEmergencia,
+            telefonoEmergencia
         } = req.body;
 
+        // Normalize fields
+        const finalCodigo = codigo || generateClientCode();
+        const finalFechaNacimiento = fecha_nacimiento || fechaNacimiento || null;
+        const finalCondicionesMedicas = condiciones_medicas || condicionesMedicas || null;
+        const finalAlergias = alergias || null;
+        const finalContactoEmergencia = contacto_emergencia || contactoEmergencia || null;
+        const finalTelefonoEmergencia = telefono_emergencia || telefonoEmergencia || null;
+
         // Validation
-        if (!codigo || !nombre || !apellido) {
-            return res.status(400).json({ error: 'Code, name and lastname are required' });
+        if (!nombre || !apellido) {
+            return res.status(400).json({ error: 'Name and lastname are required' });
         }
 
         // Check if code already exists
-        const existing = db.prepare('SELECT id FROM clientes WHERE codigo = ?').get(codigo);
+        const existing = db.prepare('SELECT id FROM clientes WHERE codigo = ?').get(finalCodigo);
         if (existing) {
+            // If auto-generated, try one more time
+            if (!codigo) {
+                const retryCodigo = generateClientCode();
+                // Generate QR code
+                const qrCode = await generateClientQR(retryCodigo);
+
+                const result = db.prepare(`
+                    INSERT INTO clientes (
+                        codigo, nombre, apellido, email, telefono, fecha_nacimiento,
+                        direccion, foto, qr_code, condiciones_medicas, alergias,
+                        contacto_emergencia, telefono_emergencia, notas
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `).run(
+                    retryCodigo, nombre, apellido, email || null, telefono || null,
+                    finalFechaNacimiento, direccion || null, foto || null,
+                    qrCode, finalCondicionesMedicas, finalAlergias,
+                    finalContactoEmergencia, finalTelefonoEmergencia, notas || null
+                );
+
+                const newClientId = result.lastInsertRowid;
+                logAction(req.user.id, ACTION_TYPES.CREATE, ENTITY_TYPES.CLIENTE, newClientId, { nombre, apellido, codigo: retryCodigo });
+                const cliente = db.prepare('SELECT * FROM clientes WHERE id = ?').get(newClientId);
+                return res.status(201).json(cliente);
+            }
             return res.status(400).json({ error: 'Client code already exists' });
         }
 
         // Generate QR code
-        const qrCode = await generateClientQR(codigo);
+        const qrCode = await generateClientQR(finalCodigo);
 
         // Insert client
         const result = db.prepare(`
@@ -178,16 +262,16 @@ const create = async (req, res) => {
                 contacto_emergencia, telefono_emergencia, notas
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
-            codigo, nombre, apellido, email || null, telefono || null,
-            fecha_nacimiento || null, direccion || null, foto || null,
-            qrCode, condiciones_medicas || null, alergias || null,
-            contacto_emergencia || null, telefono_emergencia || null, notas || null
+            finalCodigo, nombre, apellido, email || null, telefono || null,
+            finalFechaNacimiento, direccion || null, foto || null,
+            qrCode, finalCondicionesMedicas, finalAlergias,
+            finalContactoEmergencia, finalTelefonoEmergencia, notas || null
         );
 
         const newClientId = result.lastInsertRowid;
 
         // Log action
-        logAction(req.user.id, ACTION_TYPES.CREATE, ENTITY_TYPES.CLIENTE, newClientId, { nombre, apellido, codigo });
+        logAction(req.user.id, ACTION_TYPES.CREATE, ENTITY_TYPES.CLIENTE, newClientId, { nombre, apellido, codigo: finalCodigo });
 
         const cliente = db.prepare('SELECT * FROM clientes WHERE id = ?').get(newClientId);
 
@@ -217,7 +301,12 @@ const update = async (req, res) => {
             contacto_emergencia,
             telefono_emergencia,
             notas,
-            activo
+            activo,
+            // Allow camelCase inputs
+            fechaNacimiento,
+            condicionesMedicas,
+            contactoEmergencia,
+            telefonoEmergencia
         } = req.body;
 
         // Check if client exists
@@ -230,6 +319,15 @@ const update = async (req, res) => {
         if (!nombre || !apellido) {
             return res.status(400).json({ error: 'Name and lastname are required' });
         }
+
+        // Normalize fields (use existing if undefined, allow null if explicitly passed as null but that's handled by frontend usually sending empty strings)
+        // For update, we want to update only if provided.
+
+        const finalFechaNacimiento = fecha_nacimiento !== undefined ? fecha_nacimiento : (fechaNacimiento !== undefined ? fechaNacimiento : cliente.fecha_nacimiento);
+        const finalCondicionesMedicas = condiciones_medicas !== undefined ? condiciones_medicas : (condicionesMedicas !== undefined ? condicionesMedicas : cliente.condiciones_medicas);
+        const finalAlergias = alergias !== undefined ? alergias : cliente.alergias;
+        const finalContactoEmergencia = contacto_emergencia !== undefined ? contacto_emergencia : (contactoEmergencia !== undefined ? contactoEmergencia : cliente.contacto_emergencia);
+        const finalTelefonoEmergencia = telefono_emergencia !== undefined ? telefono_emergencia : (telefonoEmergencia !== undefined ? telefonoEmergencia : cliente.telefono_emergencia);
 
         // Update client
         db.prepare(`
@@ -250,17 +348,17 @@ const update = async (req, res) => {
             WHERE id = ?
         `).run(
             nombre, apellido, email || null, telefono || null,
-            fecha_nacimiento || null, direccion || null, foto || null,
-            condiciones_medicas || null, alergias || null,
-            contacto_emergencia || null, telefono_emergencia || null,
-            notas || null, activo !== undefined ? activo : cliente.activo, id
+            finalFechaNacimiento, direccion || null, foto || null,
+            finalCondicionesMedicas, finalAlergias,
+            finalContactoEmergencia, finalTelefonoEmergencia,
+            notas || null, activo !== undefined ? (activo ? 1 : 0) : cliente.activo, id
         );
 
         // Log action
         logAction(req.user.id, ACTION_TYPES.UPDATE, ENTITY_TYPES.CLIENTE, id, {
             nombre: nombre !== cliente.nombre ? nombre : undefined,
             apellido: apellido !== cliente.apellido ? apellido : undefined,
-            activo: activo !== undefined && activo !== cliente.activo ? activo : undefined
+            activo: activo !== undefined && (activo ? 1 : 0) !== cliente.activo ? activo : undefined
         });
 
         const updatedCliente = db.prepare('SELECT * FROM clientes WHERE id = ?').get(id);

@@ -13,7 +13,8 @@ import {
   ShoppingCart,
   Package,
   AlertTriangle,
-  User
+  User,
+  Crown
 } from 'lucide-react'
 import { usePermissions } from '../../hooks/usePermissions'
 
@@ -30,13 +31,14 @@ const Sidebar = ({ isOpen, onToggle }) => {
     { path: '/clientes', icon: Users, label: 'Clientes', permission: PERMISSIONS.CAN_VIEW_CLIENTS },
     { path: '/check-in', icon: LogIn, label: 'Check-in', permission: PERMISSIONS.CAN_CHECK_IN },
     { path: '/membresias', icon: CreditCard, label: 'Membresías', permission: PERMISSIONS.CAN_VIEW_CLIENTS }, // Assuming view is base requirement
+    { path: '/membresias/asignaciones', icon: Crown, label: 'Membresías', permission: PERMISSIONS.CAN_VIEW_CLIENTS },
     { path: '/membresias/vencimientos', icon: AlertCircle, label: 'Vencimientos', permission: PERMISSIONS.CAN_RENEW_MEMBERSHIP },
+    { path: '/pagos', icon: DollarSign, label: 'Pagos', permission: PERMISSIONS.CAN_VIEW_FINANCIALS },
     { path: '/tienda/punto-venta', icon: ShoppingCart, label: 'Punto de Venta', permission: PERMISSIONS.CAN_POS },
     { path: '/tienda/productos', icon: Package, label: 'Productos', permission: PERMISSIONS.CAN_MANAGE_INVENTORY },
     { path: '/tienda/alertas', icon: AlertTriangle, label: 'Alertas Stock', permission: PERMISSIONS.CAN_MANAGE_INVENTORY },
     { path: '/maquinas', icon: Dumbbell, label: 'Máquinas', permission: PERMISSIONS.CAN_MANAGE_MACHINES },
     { path: '/asistencias', icon: Calendar, label: 'Asistencias', permission: null }, // Check spec
-    { path: '/pagos', icon: DollarSign, label: 'Pagos', permission: PERMISSIONS.CAN_VIEW_FINANCIALS },
     { path: '/reportes', icon: BarChart3, label: 'Reportes', permission: PERMISSIONS.CAN_VIEW_FINANCIALS },
     { path: '/configuracion', icon: Settings, label: 'Configuración', permission: PERMISSIONS.CAN_MANAGE_USERS }, // Using Manage Users as proxy for now, or create CAN_CONFIGURE_SYSTEM
   ]

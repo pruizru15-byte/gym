@@ -18,6 +18,8 @@ import MembresiasList from './components/Membresias/MembresiasList'
 import MembresiaForm from './components/Membresias/MembresiaForm'
 import RenovarMembresia from './components/Membresias/RenovarMembresia'
 import VencimientosProximos from './components/Membresias/VencimientosProximos'
+import AsignacionesList from './components/Membresias/AsignacionesList'
+import NuevaAsignacion from './components/Membresias/NuevaAsignacion'
 
 // Store/POS components
 import ProductosList from './components/Tienda/ProductosList'
@@ -33,6 +35,9 @@ import MaquinaDetalle from './components/Maquinas/MaquinaDetalle'
 // Settings
 import UserProfile from './components/Profile/UserProfile'
 import Settings from './components/Settings/Settings'
+
+// Pagos
+import HistorialPagos from './components/Pagos/HistorialPagos'
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -107,6 +112,16 @@ function App() {
                 <Route path="/membresias/nuevo" element={
                   <PermissionGuard permission={PERMISSIONS.CAN_CONFIGURE_SYSTEM}>
                     <MembresiaForm />
+                  </PermissionGuard>
+                } />
+                <Route path="/membresias/asignaciones" element={
+                  <PermissionGuard permission={PERMISSIONS.CAN_VIEW_CLIENTS}>
+                    <AsignacionesList />
+                  </PermissionGuard>
+                } />
+                <Route path="/membresias/asignar" element={
+                  <PermissionGuard permission={PERMISSIONS.CAN_RENEW_MEMBERSHIP}>
+                    <NuevaAsignacion />
                   </PermissionGuard>
                 } />
                 <Route path="/membresias/editar/:id" element={
@@ -185,6 +200,13 @@ function App() {
                 <Route path="/configuracion/*" element={
                   <PermissionGuard permission={PERMISSIONS.CAN_MANAGE_USERS}>
                     <Settings />
+                  </PermissionGuard>
+                } />
+
+                {/* Pagos Routes */}
+                <Route path="/pagos" element={
+                  <PermissionGuard permission={PERMISSIONS.CAN_VIEW_FINANCIALS}>
+                    <HistorialPagos />
                   </PermissionGuard>
                 } />
 

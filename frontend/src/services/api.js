@@ -5,6 +5,9 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
   headers: {
     'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
   },
 })
 
@@ -15,6 +18,13 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
+
+    // Add cache buster to GET requests
+    if (config.method === 'get') {
+      config.params = config.params || {};
+      config.params._t = new Date().getTime();
+    }
+
     return config
   },
   (error) => {
@@ -69,6 +79,7 @@ export const membersAPI = {
 export const membershipsAPI = {
   // Logic might be mixed here, but mapping based on best guess
   getAll: (params) => api.get('/membresias', { params }), // NOTE: This actually gets Plans currently
+  getAllAssignments: (params) => api.get('/membresias/asignaciones', { params }), // New endpoint
   getById: (id, params) => api.get(`/membresias/${id}`, { params }),
   getActive: (clienteId) => api.get(`/membresias/cliente/${clienteId}`), // Changed path
   create: (data) => api.post('/membresias/asignar', data), // Changed for assignment
@@ -83,21 +94,21 @@ export const plansAPI = {
   create: (data) => api.post('/membresias', data),
   update: (id, data) => api.put(`/membresias/${id}`, data),
   delete: (id) => api.delete(`/membresias/${id}`),
+  toggleStatus: (id) => api.patch(`/membresias/${id}/toggle`),
 }
 
-// Payments API
-export const paymentsAPI = {
-  getAll: (params) => api.get('/ventas', { params }), // Payments likely tracked via sales/ventas
-  getById: (id) => api.get(`/ventas/${id}`),
-  create: (data) => api.post('/ventas', data),
-  getByMembership: (membresiaId) => api.get(`/ventas/membresia/${membresiaId}`), // Warning: mismatch likely
-}
+// Payments API is defined collectively below
 
 // Attendance API
 export const attendanceAPI = {
+  // Added getToday to fetch todays checkins
   getAll: (params) => api.get('/asistencias', { params }),
-  register: (data) => api.post('/asistencias/checkin', data), // Changed to specific endpoint
-  getByMember: (clienteId, params) => api.get(`/asistencias/cliente/${clienteId}`, { params }), // Changed to /cliente
+  getToday: () => api.get('/asistencias/hoy'),
+  register: (data) => api.post('/asistencias/checkin', data),
+  checkInByCode: (data) => api.post('/asistencias/checkin-codigo', data),
+  registerExit: (data) => api.post('/asistencias/checkout', data),
+  checkOutByCode: (data) => api.post('/asistencias/checkout-codigo', data),
+  getByMember: (clienteId, params) => api.get(`/asistencias/cliente/${clienteId}`, { params }),
   getStats: (params) => api.get('/asistencias/estadisticas', { params }),
 }
 
@@ -131,6 +142,27 @@ export const productsAPI = {
   delete: (id) => api.delete(`/tienda/${id}`),
   getLowStock: () => api.get('/tienda/stock-bajo'),
   getExpiringSoon: () => api.get('/tienda/por-vencer'), // Warning: Endpoint missing
+}
+
+// Payments & Cash Register API
+export const paymentsAPI = {
+  getHistory: (params) => api.get('/pagos', { params }),
+  getByClient: (clienteId) => api.get('/pagos', { params: { cliente_id: clienteId } }),
+  getByMembership: (membresiaId) => api.get('/pagos', { params: { referencia_id: membresiaId, tipo: 'membresia' } }),
+  getReceipt: (id) => api.get(`/pagos/${id}/recibo`),
+
+  // Caja
+  getCajaStatus: () => api.get('/pagos/caja/estado'),
+  abrirCaja: (data) => api.post('/pagos/caja/abrir', data),
+  recordCashCut: (data) => api.post('/pagos/corte-caja', data),
+
+  // Pendientes & Inactivos
+  getPendientes: () => api.get('/pagos/pendientes'),
+  pagarPendiente: (id, data) => api.post(`/pagos/pendientes/${id}/pagar`, data),
+  enviarRecordatorioCuota: (cuotaId) => api.post(`/pagos/pendientes/cuota/${cuotaId}/recordatorio`),
+  getInactivos: () => api.get('/pagos/inactivos'),
+  sendWinBackEmail: (id) => api.post(`/pagos/inactivos/${id}/send-email`),
+  enviarRecibo: (id, data) => api.post(`/pagos/${id}/enviar-recibo`, data),
 }
 
 // Sales/POS API

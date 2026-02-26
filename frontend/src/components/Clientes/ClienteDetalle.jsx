@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   User, Mail, Phone, MapPin, Calendar, Edit, CreditCard,
-  Clock, Activity, AlertCircle, ArrowLeft, RefreshCw
+  Clock, Activity, AlertCircle, ArrowLeft, RefreshCw, QrCode
 } from 'lucide-react'
 import { membersAPI, membershipsAPI, attendanceAPI, paymentsAPI } from '../../services/api'
 import { formatDate, formatDateTime, formatCurrency, formatPhone, daysUntil } from '../../utils/formatters'
@@ -35,7 +35,11 @@ const ClienteDetalle = () => {
       // Load active membership
       try {
         const membresiaRes = await membershipsAPI.getActive(id)
-        setMembresiaActiva(membresiaRes.data.membresia || membresiaRes.data)
+        // Handle response which might be an object or an array
+        const rawData = membresiaRes.data.membresia || membresiaRes.data
+        // If it's an array, take the first one (most recent), otherwise take the object
+        const membresiaData = Array.isArray(rawData) ? rawData[0] : rawData
+        setMembresiaActiva(membresiaData)
       } catch (error) {
         // No active membership
         setMembresiaActiva(null)
@@ -46,9 +50,12 @@ const ClienteDetalle = () => {
       setHistorialAsistencias(asistenciasRes.data.asistencias || asistenciasRes.data || [])
 
       // Load payment history
-      if (clienteData.membresiaActualId) {
-        const pagosRes = await paymentsAPI.getByMembership(clienteData.membresiaActualId)
-        setHistorialPagos(pagosRes.data.pagos || pagosRes.data || [])
+      try {
+        const pagosRes = await paymentsAPI.getByClient(id)
+        const pagosData = pagosRes.data?.data?.pagos || pagosRes.data?.pagos || pagosRes.data || []
+        setHistorialPagos(Array.isArray(pagosData) ? pagosData : [])
+      } catch (error) {
+        console.error('Error loading payment history:', error)
       }
     } catch (error) {
       toast.error('Error al cargar datos del cliente')
@@ -64,32 +71,33 @@ const ClienteDetalle = () => {
       return {
         text: 'Sin membresía activa',
         className: 'bg-red-100 text-red-800',
-        icon: <AlertCircle size={16} />
+        icon: <AlertCircle size={20} />
       }
     }
 
-    const days = daysUntil(membresiaActiva.fechaVencimiento)
-    
+    const fechaVencimiento = membresiaActiva.fechaVencimiento || membresiaActiva.fecha_vencimiento
+    const days = daysUntil(fechaVencimiento)
+
     if (days === null || days < 0) {
       return {
         text: 'Vencida',
         className: 'bg-red-100 text-red-800',
-        icon: <AlertCircle size={16} />
+        icon: <AlertCircle size={20} />
       }
     }
-    
+
     if (days <= 7) {
       return {
         text: `Vence en ${days} ${days === 1 ? 'día' : 'días'}`,
         className: 'bg-yellow-100 text-yellow-800',
-        icon: <Clock size={16} />
+        icon: <Clock size={20} />
       }
     }
 
     return {
       text: 'Activa',
       className: 'bg-green-100 text-green-800',
-      icon: <Activity size={16} />
+      icon: <Activity size={20} />
     }
   }
 
@@ -131,41 +139,41 @@ const ClienteDetalle = () => {
           <ArrowLeft size={20} />
           Volver a clientes
         </button>
-        
+
         <div className="flex justify-between items-start">
           <div className="flex items-center gap-4">
-            <div className="h-20 w-20 rounded-full bg-primary-100 flex items-center justify-center">
+            <div className="h-20 w-20 rounded-full bg-primary-100 flex items-center justify-center border-4 border-white shadow-sm">
               <User className="text-primary-600" size={32} />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">{cliente.nombre}</h1>
-              <p className="text-gray-600">ID: {cliente.id}</p>
+              <h1 className="text-3xl font-bold text-gray-900">{cliente.nombre} {cliente.apellido}</h1>
+              <p className="text-gray-600 font-mono">ID: {cliente.codigo || cliente.id}</p>
             </div>
           </div>
-          
+
           <div className="flex gap-2">
             <Link
               to={`/clientes/${id}/editar`}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
+              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition flex items-center gap-2 bg-white shadow-sm"
             >
               <Edit size={18} />
               Editar
             </Link>
-            {membresiaActiva ? (
+            {membresiaActiva && daysUntil(membresiaActiva.fechaVencimiento || membresiaActiva.fecha_vencimiento) >= 0 ? (
               <Link
                 to={`/membresias/renovar/${id}`}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition flex items-center gap-2"
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition flex items-center gap-2 shadow-sm"
               >
                 <RefreshCw size={18} />
-                Renovar
+                Extender/Renovar
               </Link>
             ) : (
               <Link
-                to={`/membresias/nueva/${id}`}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition flex items-center gap-2"
+                to={`/membresias/renovar/${id}`}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2 shadow-sm"
               >
-                <CreditCard size={18} />
-                Asignar Membresía
+                <RefreshCw size={18} />
+                Renovar Membresía
               </Link>
             )}
           </div>
@@ -173,9 +181,18 @@ const ClienteDetalle = () => {
       </div>
 
       {/* Membership Status Alert */}
-      <div className={`mb-6 p-4 rounded-lg flex items-center gap-3 ${status.className}`}>
-        {status.icon}
-        <span className="font-medium">{status.text}</span>
+      <div className={`mb-6 p-4 rounded-lg flex items-center gap-3 shadow-sm border ${status.className.replace('text-', 'border-').replace('800', '200')}`}>
+        <div className="p-2 bg-white bg-opacity-50 rounded-full">
+          {status.icon}
+        </div>
+        <div>
+          <p className={`font-bold text-lg ${status.className.split(' ')[1]}`}>{status.text}</p>
+          {membresiaActiva && (
+            <p className={`text-sm ${status.className.split(' ')[1]} opacity-80`}>
+              Vence el {formatDate(membresiaActiva.fechaVencimiento || membresiaActiva.fecha_vencimiento)}
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Tabs */}
@@ -183,31 +200,28 @@ const ClienteDetalle = () => {
         <nav className="-mb-px flex space-x-8">
           <button
             onClick={() => setActiveTab('info')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'info'
-                ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
+            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'info'
+              ? 'border-primary-500 text-primary-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
           >
             Información General
           </button>
           <button
             onClick={() => setActiveTab('asistencias')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'asistencias'
-                ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
+            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'asistencias'
+              ? 'border-primary-500 text-primary-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
           >
             Historial de Asistencias
           </button>
           <button
             onClick={() => setActiveTab('pagos')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'pagos'
-                ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
+            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'pagos'
+              ? 'border-primary-500 text-primary-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
           >
             Historial de Pagos
           </button>
@@ -218,80 +232,89 @@ const ClienteDetalle = () => {
       {activeTab === 'info' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Personal Information */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <User size={20} />
+              <User size={20} className="text-primary-500" />
               Información Personal
             </h2>
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                 <Mail size={18} className="text-gray-400" />
                 <div>
-                  <p className="text-sm text-gray-500">Email</p>
-                  <p className="text-gray-900">{cliente.email || '-'}</p>
+                  <p className="text-xs text-gray-500 font-medium uppercase">Email</p>
+                  <p className="text-gray-900 font-medium">{cliente.email || '-'}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                 <Phone size={18} className="text-gray-400" />
                 <div>
-                  <p className="text-sm text-gray-500">Teléfono</p>
-                  <p className="text-gray-900">{formatPhone(cliente.telefono)}</p>
+                  <p className="text-xs text-gray-500 font-medium uppercase">Teléfono</p>
+                  <p className="text-gray-900 font-medium">{formatPhone(cliente.telefono)}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                 <Calendar size={18} className="text-gray-400" />
                 <div>
-                  <p className="text-sm text-gray-500">Fecha de Nacimiento</p>
-                  <p className="text-gray-900">{formatDate(cliente.fechaNacimiento)}</p>
+                  <p className="text-xs text-gray-500 font-medium uppercase">Fecha de Nacimiento</p>
+                  <p className="text-gray-900 font-medium">{formatDate(cliente.fechaNacimiento)}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                 <MapPin size={18} className="text-gray-400" />
                 <div>
-                  <p className="text-sm text-gray-500">Dirección</p>
-                  <p className="text-gray-900">{cliente.direccion || '-'}</p>
+                  <p className="text-xs text-gray-500 font-medium uppercase">Dirección</p>
+                  <p className="text-gray-900 font-medium">{cliente.direccion || '-'}</p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Membership Information */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <CreditCard size={20} />
-              Membresía Actual
+              <CreditCard size={20} className="text-primary-500" />
+              Detalle de Membresía
             </h2>
             {membresiaActiva ? (
-              <div className="space-y-3">
-                <div>
-                  <p className="text-sm text-gray-500">Plan</p>
-                  <p className="text-lg font-semibold text-gray-900">{membresiaActiva.planNombre}</p>
+              <div className="space-y-4">
+                <div className="p-4 bg-primary-50 rounded-lg border border-primary-100">
+                  <p className="text-sm text-primary-700 font-medium mb-1">Plan Actual</p>
+                  <p className="text-xl font-bold text-primary-900">{membresiaActiva.planNombre || membresiaActiva.membresia_nombre}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500">Fecha de Inicio</p>
-                  <p className="text-gray-900">{formatDate(membresiaActiva.fechaInicio)}</p>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xs text-gray-500 font-medium uppercase mb-1">Fecha de Inicio</p>
+                    <p className="text-gray-900 font-medium">{formatDate(membresiaActiva.fechaInicio || membresiaActiva.fecha_inicio)}</p>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xs text-gray-500 font-medium uppercase mb-1">Fecha de Vencimiento</p>
+                    <p className="text-gray-900 font-bold">{formatDate(membresiaActiva.fechaVencimiento || membresiaActiva.fecha_vencimiento)}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500">Fecha de Vencimiento</p>
-                  <p className="text-gray-900">{formatDate(membresiaActiva.fechaVencimiento)}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Monto Pagado</p>
-                  <p className="text-lg font-semibold text-primary-600">
-                    {formatCurrency(membresiaActiva.monto)}
-                  </p>
+
+                <div className="p-3 bg-gray-50 rounded-lg flex justify-between items-center">
+                  <div>
+                    <p className="text-xs text-gray-500 font-medium uppercase mb-1">Monto Pagado</p>
+                    <p className="text-lg font-bold text-gray-900">
+                      {formatCurrency(membresiaActiva.monto || membresiaActiva.precio_pagado)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">PAGADO</span>
+                  </div>
                 </div>
               </div>
             ) : (
-              <div className="text-center py-8">
+              <div className="text-center py-8 bg-gray-50 rounded-lg border border-dashed border-gray-300">
                 <AlertCircle className="mx-auto text-gray-400 mb-2" size={32} />
-                <p className="text-gray-600">Sin membresía activa</p>
+                <p className="text-gray-600 font-medium">Sin membresía activa</p>
                 <Link
-                  to={`/membresias/nueva/${id}`}
-                  className="mt-4 inline-flex items-center gap-2 text-primary-600 hover:text-primary-800"
+                  to={`/membresias/renovar/${id}`}
+                  className="mt-4 inline-flex items-center gap-2 text-primary-600 hover:text-primary-800 font-medium"
                 >
-                  <CreditCard size={16} />
-                  Asignar membresía
+                  <CreditCard size={18} />
+                  Asignar membresía ahora
                 </Link>
               </div>
             )}
@@ -312,6 +335,30 @@ const ClienteDetalle = () => {
                 <p className="text-sm text-gray-500">Teléfono</p>
                 <p className="text-gray-900">{formatPhone(cliente.emergenciaTelefono)}</p>
               </div>
+            </div>
+          </div>
+
+          {/* QR Code */}
+          <div className="bg-white rounded-lg shadow-sm p-6 flex flex-col">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <QrCode size={20} className="text-primary-500" />
+              Código de Acceso
+            </h2>
+            <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 rounded-lg border border-dashed border-gray-300 p-6">
+              {cliente.qr_code ? (
+                <>
+                  <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 mb-4 inline-block">
+                    <img src={cliente.qr_code} alt={`QR ${cliente.nombre}`} className="w-40 h-40 object-contain" />
+                  </div>
+                  <p className="font-bold text-gray-900 tracking-wider text-lg bg-gray-200 px-3 py-1 rounded">{cliente.codigo}</p>
+                  <p className="text-sm text-gray-500 mt-2 text-center">Escanea en recepción para ingresar</p>
+                </>
+              ) : (
+                <>
+                  <QrCode size={48} className="text-gray-300 mb-2" />
+                  <p className="text-gray-500">Generando código QR...</p>
+                </>
+              )}
             </div>
           </div>
 
@@ -386,14 +433,14 @@ const ClienteDetalle = () => {
                   {historialPagos.map((pago) => (
                     <tr key={pago.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {formatDate(pago.fechaPago)}
+                        {formatDate(pago.fecha_hora)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {pago.concepto || 'Pago de membresía'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                          {pago.metodoPago || 'Efectivo'}
+                          {pago.metodo_pago || 'Efectivo'}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-gray-900">

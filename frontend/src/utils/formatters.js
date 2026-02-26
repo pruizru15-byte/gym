@@ -6,11 +6,11 @@
  */
 export const formatDate = (date, locale = 'es-MX') => {
   if (!date) return '-'
-  
+
   const dateObj = typeof date === 'string' ? new Date(date) : date
-  
+
   if (isNaN(dateObj.getTime())) return '-'
-  
+
   return dateObj.toLocaleDateString(locale, {
     year: 'numeric',
     month: 'long',
@@ -25,11 +25,11 @@ export const formatDate = (date, locale = 'es-MX') => {
  */
 export const formatDateShort = (date) => {
   if (!date) return '-'
-  
+
   const dateObj = typeof date === 'string' ? new Date(date) : date
-  
+
   if (isNaN(dateObj.getTime())) return '-'
-  
+
   return dateObj.toLocaleDateString('es-MX', {
     year: 'numeric',
     month: '2-digit',
@@ -44,15 +44,33 @@ export const formatDateShort = (date) => {
  */
 export const formatDateTime = (date) => {
   if (!date) return '-'
-  
+
   const dateObj = typeof date === 'string' ? new Date(date) : date
-  
+
   if (isNaN(dateObj.getTime())) return '-'
-  
+
   return dateObj.toLocaleDateString('es-MX', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+/**
+ * Format only the time
+ * @param {string|Date} date - The date to format
+ * @returns {string} Formatted time string
+ */
+export const formatTime = (date) => {
+  if (!date) return '-'
+
+  const dateObj = typeof date === 'string' ? new Date(date) : date
+
+  if (isNaN(dateObj.getTime())) return '-'
+
+  return dateObj.toLocaleTimeString('es-MX', {
     hour: '2-digit',
     minute: '2-digit'
   })
@@ -65,7 +83,7 @@ export const formatDateTime = (date) => {
  */
 export const formatCurrency = (amount) => {
   if (amount === null || amount === undefined) return '$0.00'
-  
+
   return new Intl.NumberFormat('es-MX', {
     style: 'currency',
     currency: 'MXN'
@@ -79,7 +97,7 @@ export const formatCurrency = (amount) => {
  */
 export const formatNumber = (number) => {
   if (number === null || number === undefined) return '0'
-  
+
   return new Intl.NumberFormat('es-MX').format(number)
 }
 
@@ -90,23 +108,23 @@ export const formatNumber = (number) => {
  */
 export const getRelativeTime = (date) => {
   if (!date) return '-'
-  
+
   const dateObj = typeof date === 'string' ? new Date(date) : date
-  
+
   if (isNaN(dateObj.getTime())) return '-'
-  
+
   const now = new Date()
   const diffMs = now - dateObj
   const diffSec = Math.floor(diffMs / 1000)
   const diffMin = Math.floor(diffSec / 60)
   const diffHour = Math.floor(diffMin / 60)
   const diffDay = Math.floor(diffHour / 24)
-  
+
   if (diffSec < 60) return 'hace un momento'
   if (diffMin < 60) return `hace ${diffMin} minuto${diffMin !== 1 ? 's' : ''}`
   if (diffHour < 24) return `hace ${diffHour} hora${diffHour !== 1 ? 's' : ''}`
   if (diffDay < 30) return `hace ${diffDay} día${diffDay !== 1 ? 's' : ''}`
-  
+
   return formatDate(dateObj)
 }
 
@@ -117,18 +135,18 @@ export const getRelativeTime = (date) => {
  */
 export const daysUntil = (date) => {
   if (!date) return null
-  
+
   const dateObj = typeof date === 'string' ? new Date(date) : date
-  
+
   if (isNaN(dateObj.getTime())) return null
-  
+
   const now = new Date()
   now.setHours(0, 0, 0, 0)
   dateObj.setHours(0, 0, 0, 0)
-  
+
   const diffMs = dateObj - now
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-  
+
   return diffDays
 }
 
@@ -139,15 +157,15 @@ export const daysUntil = (date) => {
  */
 export const formatPhone = (phone) => {
   if (!phone) return '-'
-  
+
   // Remove all non-digit characters
   const cleaned = phone.replace(/\D/g, '')
-  
+
   // Format as (XXX) XXX-XXXX for 10 digits
   if (cleaned.length === 10) {
     return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`
   }
-  
+
   return phone
 }
 
