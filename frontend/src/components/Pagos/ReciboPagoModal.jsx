@@ -77,20 +77,20 @@ const ReciboPagoModal = ({ pago, onClose }) => {
                             leaveFrom="opacity-100 scale-100"
                             leaveTo="opacity-0 scale-95"
                         >
-                            <Dialog.Panel className="w-full max-w-sm transform overflow-hidden rounded-2xl bg-white text-left align-middle shadow-xl transition-all print:shadow-none print:max-w-none print:w-auto print:transform-none print:overflow-visible print:bg-transparent">
+                            <Dialog.Panel className="w-full max-w-sm transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 text-left align-middle shadow-xl transition-all print:shadow-none print:max-w-none print:w-auto print:transform-none print:overflow-visible print:bg-transparent">
 
                                 {/* Close Button - Hidden when printing */}
                                 <div className="absolute right-4 top-4 print:hidden">
-                                    <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100 text-gray-500">
+                                    <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 dark:bg-gray-700 text-gray-500">
                                         <X className="w-5 h-5" />
                                     </button>
                                 </div>
 
                                 {/* Receipt Content */}
-                                <div className="p-8 print:p-0 bg-white font-mono text-sm print:text-xs text-gray-800" id="printable-receipt">
+                                <div className="p-8 print:p-0 bg-white dark:bg-gray-800 font-mono text-sm print:text-xs text-gray-800 dark:text-gray-200 dark:text-gray-200" id="printable-receipt">
 
                                     {/* Header */}
-                                    <div className="text-center mb-6 border-b-2 border-dashed border-gray-300 pb-6">
+                                    <div className="text-center mb-6 border-b-2 border-dashed border-gray-300 dark:border-gray-600 pb-6">
                                         <h2 className="text-xl font-bold uppercase tracking-widest mb-2">GET FIT</h2>
                                         <p>Calle Principal 123, Ciudad</p>
                                         <p>Tel: (555) 123-4567</p>
@@ -113,7 +113,7 @@ const ReciboPagoModal = ({ pago, onClose }) => {
                                         </div>
                                     </div>
 
-                                    <div className="border-t-2 border-dashed border-gray-300 my-4"></div>
+                                    <div className="border-t-2 border-dashed border-gray-300 dark:border-gray-600 my-4"></div>
 
                                     {/* Client Info */}
                                     <div className="mb-6 space-y-1">
@@ -131,19 +131,19 @@ const ReciboPagoModal = ({ pago, onClose }) => {
                                         )}
                                     </div>
 
-                                    <div className="border-t-2 border-dashed border-gray-300 my-4"></div>
+                                    <div className="border-t-2 border-dashed border-gray-300 dark:border-gray-600 my-4"></div>
 
                                     {/* Items */}
                                     <div className="mb-6">
-                                        <div className="font-bold mb-2 pb-1 border-b border-gray-200">CONCEPTO</div>
+                                        <div className="font-bold mb-2 pb-1 border-b border-gray-200 dark:border-gray-700 dark:border-gray-700">CONCEPTO</div>
                                         <div className="flex justify-between items-start mb-2">
                                             <div className="pr-4">
                                                 <p className="font-medium whitespace-pre-wrap">{pago.concepto}</p>
                                                 {isMembresia && !isCuotaPago && (
-                                                    <p className="text-xs text-gray-500 mt-1">Renovación de Plan</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Renovación de Plan</p>
                                                 )}
                                                 {isCuotaPago && cuotaNum && totalCuotas && (
-                                                    <p className="text-xs text-gray-500 mt-1">Cuota {cuotaNum} de {totalCuotas}</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Cuota {cuotaNum} de {totalCuotas}</p>
                                                 )}
                                             </div>
                                             <span className="font-medium">{formatCurrency(pago.monto)}</span>
@@ -151,7 +151,7 @@ const ReciboPagoModal = ({ pago, onClose }) => {
 
                                         {/* Cuotas summary section */}
                                         {isCuotaPago && pago.abonado_total !== undefined && (
-                                            <div className="mt-3 p-2 bg-gray-50 rounded border border-dashed border-gray-300 text-xs space-y-1">
+                                            <div className="mt-3 p-2 bg-gray-50 dark:bg-gray-900 rounded border border-dashed border-gray-300 dark:border-gray-600 text-xs space-y-1">
                                                 <div className="flex justify-between text-gray-600">
                                                     <span>Total del Plan:</span>
                                                     <span>{formatCurrency(pago.precio_total || 0)}</span>
@@ -160,7 +160,7 @@ const ReciboPagoModal = ({ pago, onClose }) => {
                                                     <span>Total Abonado:</span>
                                                     <span>{formatCurrency(pago.abonado_total || 0)}</span>
                                                 </div>
-                                                <div className="flex justify-between font-bold text-gray-800 border-t border-gray-200 pt-1">
+                                                <div className="flex justify-between font-bold text-gray-800 dark:text-gray-200 border-t border-gray-200 dark:border-gray-700 pt-1">
                                                     <span>Saldo Pendiente:</span>
                                                     <span>{formatCurrency((pago.precio_total || 0) - (pago.abonado_total || 0))}</span>
                                                 </div>
@@ -172,7 +172,7 @@ const ReciboPagoModal = ({ pago, onClose }) => {
 
                                     {/* Totals */}
                                     <div className="space-y-1 mb-6">
-                                        <div className="flex justify-between text-base font-bold bg-gray-50 p-2 rounded">
+                                        <div className="flex justify-between text-base font-bold bg-gray-50 dark:bg-gray-900 p-2 rounded">
                                             <span>TOTAL:</span>
                                             <span>{formatCurrency(pago.monto)}</span>
                                         </div>
@@ -191,7 +191,7 @@ const ReciboPagoModal = ({ pago, onClose }) => {
                                     </div>
 
                                     {/* Footer */}
-                                    <div className="text-center mt-8 border-t-2 border-dashed border-gray-300 pt-6">
+                                    <div className="text-center mt-8 border-t-2 border-dashed border-gray-300 dark:border-gray-600 pt-6">
                                         <p className="font-semibold pb-1">¡GRACIAS POR SU PREFERENCIA!</p>
                                         <p className="text-xs">Conserve este ticket para cualquier aclaración.</p>
                                         <p className="text-xs mt-2 italic">¡Buen entrenamiento!</p>
@@ -218,7 +218,7 @@ const ReciboPagoModal = ({ pago, onClose }) => {
                 `}} />
 
                                 {/* Actions - Hidden when printing */}
-                                <div className="p-4 bg-gray-50 border-t border-gray-100 flex gap-3 print:hidden justify-center rounded-b-2xl">
+                                <div className="p-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-700 flex gap-3 print:hidden justify-center rounded-b-2xl">
                                     <button
                                         onClick={handlePrint}
                                         disabled={sendingEmail}
@@ -228,7 +228,7 @@ const ReciboPagoModal = ({ pago, onClose }) => {
                                         Imprimir
                                     </button>
                                     <button
-                                        className="flex items-center justify-center gap-2 px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm disabled:opacity-50"
+                                        className="flex items-center justify-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition-colors font-medium text-sm disabled:opacity-50"
                                         onClick={handleEmailReceipt}
                                         disabled={sendingEmail}
                                     >
@@ -238,7 +238,7 @@ const ReciboPagoModal = ({ pago, onClose }) => {
                                     <button
                                         onClick={onClose}
                                         disabled={sendingEmail}
-                                        className="flex items-center justify-center px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium text-sm transition-colors disabled:opacity-50"
+                                        className="flex items-center justify-center px-4 py-2 bg-gray-200 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 font-medium text-sm transition-colors disabled:opacity-50"
                                     >
                                         Cerrar
                                     </button>

@@ -158,12 +158,12 @@ const NuevaAsignacion = () => {
             <div className="flex items-center mb-6">
                 <button
                     onClick={() => step > 1 ? setStep(step - 1) : navigate('/membresias/asignaciones')}
-                    className="mr-4 p-2 rounded-full hover:bg-gray-100"
+                    className="mr-4 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 dark:bg-gray-700 dark:bg-gray-700"
                 >
                     <ArrowLeft size={24} className="text-gray-600" />
                 </button>
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Nueva Asignación</h1>
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white dark:text-white">Nueva Asignación</h1>
                     <p className="text-gray-600">
                         {step === 1 && 'Paso 1: Seleccionar Cliente'}
                         {step === 2 && 'Paso 2: Detalles de Membresía'}
@@ -171,7 +171,7 @@ const NuevaAsignacion = () => {
                 </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
 
                 {/* Step 1: Client Selection */}
                 {step === 1 && (
@@ -181,7 +181,7 @@ const NuevaAsignacion = () => {
                             <input
                                 type="text"
                                 placeholder="Buscar cliente por nombre o código..."
-                                className="w-full pl-12 pr-4 py-4 text-lg border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:ring-0 transition-colors"
+                                className="w-full pl-12 pr-4 py-4 text-lg border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-primary-500 focus:ring-0 transition-colors"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 autoFocus
@@ -196,14 +196,14 @@ const NuevaAsignacion = () => {
                                     <button
                                         key={client.id}
                                         onClick={() => handleClientSelect(client)}
-                                        className="w-full text-left p-4 rounded-xl hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-all group flex items-center justify-between"
+                                        className="w-full text-left p-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 border border-transparent hover:border-gray-200 dark:border-gray-700 transition-all group flex items-center justify-between"
                                     >
                                         <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-bold text-lg">
+                                            <div className="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 dark:text-primary-400 font-bold text-lg">
                                                 {client.nombre.charAt(0)}
                                             </div>
                                             <div>
-                                                <h3 className="font-semibold text-gray-900 group-hover:text-primary-700">{client.nombre} {client.apellido}</h3>
+                                                <h3 className="font-semibold text-gray-900 dark:text-white group-hover:text-primary-700">{client.nombre} {client.apellido}</h3>
                                                 <p className="text-sm text-gray-500">{client.email || 'Sin email'} • {client.telefono || 'Sin teléfono'}</p>
                                             </div>
                                         </div>
@@ -234,10 +234,10 @@ const NuevaAsignacion = () => {
                                 {selectedClient.nombre.charAt(0)}
                             </div>
                             <div>
-                                <p className="text-xs text-primary-600 font-semibold uppercase tracking-wider">Cliente Seleccionado</p>
-                                <h3 className="font-bold text-gray-900">{selectedClient.nombre} {selectedClient.apellido}</h3>
+                                <p className="text-xs text-primary-600 dark:text-primary-400 font-semibold uppercase tracking-wider">Cliente Seleccionado</p>
+                                <h3 className="font-bold text-gray-900 dark:text-white dark:text-white">{selectedClient.nombre} {selectedClient.apellido}</h3>
                             </div>
-                            <button onClick={() => setStep(1)} className="ml-auto text-sm text-primary-600 hover:text-primary-800 font-medium underline">
+                            <button onClick={() => setStep(1)} className="ml-auto text-sm text-primary-600 dark:text-primary-400 hover:text-primary-800 font-medium underline">
                                 Cambiar
                             </button>
                         </div>
@@ -247,7 +247,7 @@ const NuevaAsignacion = () => {
 
                                 {/* Plan Selection */}
                                 <div className="col-span-2">
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Seleccionar Plan</label>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Seleccionar Plan</label>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         {plans.map(plan => (
                                             <div
@@ -255,12 +255,12 @@ const NuevaAsignacion = () => {
                                                 onClick={() => handlePlanSelect(plan.id)}
                                                 className={`cursor-pointer rounded-xl border-2 p-4 transition-all ${formData.planId === plan.id
                                                     ? 'border-primary-500 bg-primary-50'
-                                                    : 'border-gray-200 hover:border-gray-300'
+                                                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:border-gray-600 dark:border-gray-600'
                                                     }`}
                                             >
                                                 <div className="flex justify-between items-start mb-2">
-                                                    <h4 className="font-bold text-gray-900">{plan.nombre}</h4>
-                                                    <span className="text-primary-600 font-bold">{formatCurrency(plan.precio)}</span>
+                                                    <h4 className="font-bold text-gray-900 dark:text-white dark:text-white">{plan.nombre}</h4>
+                                                    <span className="text-primary-600 dark:text-primary-400 font-bold">{formatCurrency(plan.precio)}</span>
                                                 </div>
                                                 <p className="text-xs text-gray-500">
                                                     {plan.duracion_dias
@@ -274,27 +274,27 @@ const NuevaAsignacion = () => {
 
                                 {/* Dates */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Fecha Inicio</label>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha Inicio</label>
                                     <div className="relative">
                                         <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                                         <input
                                             type="date"
                                             value={formData.fechaInicio}
                                             onChange={(e) => setFormData({ ...formData, fechaInicio: e.target.value })}
-                                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500"
                                             required
                                         />
                                     </div>
                                     {formData.planId && (
-                                        <p className="text-xs text-gray-500 mt-1 pl-1">
-                                            Vence: <span className="font-medium text-gray-900">{getExpirationPreview()}</span>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 pl-1">
+                                            Vence: <span className="font-medium text-gray-900 dark:text-white dark:text-white">{getExpirationPreview()}</span>
                                         </p>
                                     )}
                                 </div>
 
                                 {/* Installments / Cuotas Option */}
-                                <div className="col-span-1 md:col-span-2 bg-gray-50 border border-gray-200 p-4 rounded-xl">
-                                    <h4 className="font-semibold text-gray-800 mb-4">Opciones de Pago</h4>
+                                <div className="col-span-1 md:col-span-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-4 rounded-xl">
+                                    <h4 className="font-semibold text-gray-800 dark:text-gray-200 mb-4">Opciones de Pago</h4>
 
                                     <div className="flex flex-col sm:flex-row gap-6">
                                         <label className="flex items-center gap-2 cursor-pointer">
@@ -303,9 +303,9 @@ const NuevaAsignacion = () => {
                                                 name="tipoPago"
                                                 checked={!formData.isCuotas}
                                                 onChange={() => setFormData({ ...formData, isCuotas: false })}
-                                                className="w-4 h-4 text-primary-600 focus:ring-primary-500"
+                                                className="w-4 h-4 text-primary-600 dark:text-primary-400 focus:ring-primary-500"
                                             />
-                                            <span className="text-gray-700 font-medium">Pago Completado</span>
+                                            <span className="text-gray-700 dark:text-gray-300 font-medium">Pago Completado</span>
                                         </label>
 
                                         <label className="flex items-center gap-2 cursor-pointer">
@@ -314,34 +314,34 @@ const NuevaAsignacion = () => {
                                                 name="tipoPago"
                                                 checked={formData.isCuotas}
                                                 onChange={() => setFormData({ ...formData, isCuotas: true })}
-                                                className="w-4 h-4 text-primary-600 focus:ring-primary-500"
+                                                className="w-4 h-4 text-primary-600 dark:text-primary-400 focus:ring-primary-500"
                                             />
-                                            <span className="text-gray-700 font-medium">Pagar en Cuotas</span>
+                                            <span className="text-gray-700 dark:text-gray-300 font-medium">Pagar en Cuotas</span>
                                         </label>
                                     </div>
 
                                     {formData.isCuotas && (
                                         <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Número de Cuotas</label>
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Número de Cuotas</label>
                                                 <input
                                                     type="number"
                                                     min="2"
                                                     max="12"
                                                     value={formData.numCuotas}
                                                     onChange={(e) => setFormData({ ...formData, numCuotas: parseInt(e.target.value) || 2 })}
-                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500"
                                                     required
                                                 />
                                             </div>
                                             <div className="flex flex-col justify-center">
                                                 <p className="text-sm font-medium text-gray-700">Monto Primera Cuota (Hoy):</p>
-                                                <p className="text-lg font-bold text-primary-600">
+                                                <p className="text-lg font-bold text-primary-600 dark:text-primary-400 dark:text-primary-400">
                                                     {formData.monto && formData.numCuotas
                                                         ? formatCurrency(parseFloat(formData.monto) / formData.numCuotas)
                                                         : '-'}
                                                 </p>
-                                                <p className="text-xs text-gray-500 mt-1">
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                                     (Las siguientes cuotas se cargarán como pendientes)
                                                 </p>
                                             </div>
@@ -352,15 +352,15 @@ const NuevaAsignacion = () => {
                                 {/* Amount */}
                                 {!formData.isCuotas && (
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Monto a Pagar (Hoy)</label>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Monto a Pagar (Hoy)</label>
                                         <div className="relative">
-                                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-bold">$</span>
+                                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 font-bold">$</span>
                                             <input
                                                 type="number"
                                                 step="0.01"
                                                 value={formData.monto}
                                                 onChange={(e) => setFormData({ ...formData, monto: e.target.value })}
-                                                className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                                className="w-full pl-8 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500"
                                                 required
                                             />
                                         </div>
@@ -369,13 +369,13 @@ const NuevaAsignacion = () => {
 
                                 {/* Payment Method */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Método de Pago</label>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Método de Pago</label>
                                     <div className="relative">
                                         <CreditCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                                         <select
                                             value={formData.metodoPago}
                                             onChange={(e) => setFormData({ ...formData, metodoPago: e.target.value })}
-                                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500"
                                         >
                                             <option value="efectivo">Efectivo</option>
                                             <option value="tarjeta">Tarjeta</option>
@@ -387,22 +387,22 @@ const NuevaAsignacion = () => {
 
                                 {/* Notes */}
                                 <div className="col-span-2">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Notas</label>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notas</label>
                                     <textarea
                                         value={formData.notas}
                                         onChange={(e) => setFormData({ ...formData, notas: e.target.value })}
                                         rows="3"
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500"
                                         placeholder="Observaciones opcionales..."
                                     ></textarea>
                                 </div>
                             </div>
 
-                            <div className="pt-6 border-t border-gray-100 flex justify-end gap-3">
+                            <div className="pt-6 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3">
                                 <button
                                     type="button"
                                     onClick={() => setStep(1)}
-                                    className="px-6 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50"
+                                    className="px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 dark:bg-gray-900"
                                 >
                                     Cancelar
                                 </button>

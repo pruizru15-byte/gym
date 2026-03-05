@@ -76,17 +76,19 @@ export const formatTime = (date) => {
   })
 }
 
+import { getCurrency, getCurrencyLocale, getCurrencySymbol } from './currencyConfig'
+
 /**
- * Format a number as currency (Mexican Pesos)
+ * Format a number as currency using the system-configured currency
  * @param {number} amount - The amount to format
  * @returns {string} Formatted currency string
  */
 export const formatCurrency = (amount) => {
-  if (amount === null || amount === undefined) return '$0.00'
+  if (amount === null || amount === undefined) return `${getCurrencySymbol()}0.00`
 
-  return new Intl.NumberFormat('es-MX', {
+  return new Intl.NumberFormat(getCurrencyLocale(), {
     style: 'currency',
-    currency: 'MXN'
+    currency: getCurrency()
   }).format(amount)
 }
 

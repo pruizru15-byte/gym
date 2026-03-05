@@ -1,46 +1,54 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { alertsAPI } from '../services/api'
 import toast from 'react-hot-toast'
 
 /**
  * Custom hook for managing notifications/alerts
- * Provides methods to fetch, mark as read, and manage alerts
+ * Badge count = unread notifications only (decreases when clicked)
  */
 export const useNotifications = () => {
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const intervalRef = useRef(null)
 
-  // Fetch notifications
+  // Fetch notifications and set unread count
   const fetchNotifications = useCallback(async (params = {}) => {
     setLoading(true)
     setError(null)
     try {
-      const response = await alertsAPI.getAll(params)
-      const alerts = response.data.notificaciones || response.data.alertas || response.data || []
-      setNotifications(alerts)
+      const response = await alertsAPI.getActivityFeed({ limit: 30 })
+      const data = response.data
+      const items = data.actividad || []
+      setNotifications(items)
 
-      // Count unread notifications
-      const unread = alerts.filter(alert => !alert.leida).length
-      setUnreadCount(unread)
+      // Badge = ONLY unread notifications (so it decreases on click)
+      setUnreadCount(data.no_leidas || 0)
     } catch (err) {
       setError(err.message)
-      toast.error('Error al cargar notificaciones')
     } finally {
       setLoading(false)
     }
   }, [])
 
-  // Mark notification as read
+  // Lightweight unread count refresh
+  const fetchUnreadCount = useCallback(async () => {
+    try {
+      const response = await alertsAPI.getUnreadCount()
+      setUnreadCount(response.data.no_leidas || 0)
+    } catch (err) {
+      // Silent fail
+    }
+  }, [])
+
+  // Mark notification as read → badge decreases
   const markAsRead = async (id) => {
     try {
       await alertsAPI.markAsRead(id)
-
-      // Update local state
       setNotifications(prev =>
         prev.map(notif =>
-          notif.id === id ? { ...notif, leida: true } : notif
+          notif.id === id ? { ...notif, leida: 1 } : notif
         )
       )
       setUnreadCount(prev => Math.max(0, prev - 1))
@@ -49,14 +57,12 @@ export const useNotifications = () => {
     }
   }
 
-  // Mark all notifications as read
+  // Mark all as read → badge goes to 0
   const markAllAsRead = async () => {
     try {
       await alertsAPI.markAllAsRead()
-
-      // Update local state
       setNotifications(prev =>
-        prev.map(notif => ({ ...notif, leida: true }))
+        prev.map(notif => ({ ...notif, leida: 1 }))
       )
       setUnreadCount(0)
       toast.success('Todas las notificaciones marcadas como leídas')
@@ -70,13 +76,23 @@ export const useNotifications = () => {
     fetchNotifications()
   }, [fetchNotifications])
 
+  // Auto-refresh every 60 seconds
+  useEffect(() => {
+    intervalRef.current = setInterval(fetchUnreadCount, 60000)
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+    }
+  }, [fetchUnreadCount])
+
   return {
     notifications,
     unreadCount,
     loading,
     error,
     fetchNotifications,
+    fetchUnreadCount,
     markAsRead,
     markAllAsRead,
   }
 }
+

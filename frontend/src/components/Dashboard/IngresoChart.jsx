@@ -81,8 +81,8 @@ const IngresoChart = () => {
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
-          <p className="text-sm font-medium text-gray-900">
+        <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+          <p className="text-sm font-medium text-gray-900 dark:text-white">
             {payload[0].payload.mes}
           </p>
           <p className="text-lg font-bold text-primary-600">
@@ -97,7 +97,7 @@ const IngresoChart = () => {
   return (
     <div className="card h-full flex flex-col">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-gray-900">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
           Ingresos
         </h2>
 
@@ -106,8 +106,8 @@ const IngresoChart = () => {
           <button
             onClick={() => setPeriod('1m')}
             className={`px-3 py-1 text-sm rounded-lg transition-colors ${period === '1m'
-                ? 'bg-primary-100 text-primary-700 font-medium'
-                : 'text-gray-600 hover:bg-gray-100'
+              ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 font-medium'
+              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
           >
             1M
@@ -115,8 +115,8 @@ const IngresoChart = () => {
           <button
             onClick={() => setPeriod('3m')}
             className={`px-3 py-1 text-sm rounded-lg transition-colors ${period === '3m'
-                ? 'bg-primary-100 text-primary-700 font-medium'
-                : 'text-gray-600 hover:bg-gray-100'
+              ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 font-medium'
+              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
           >
             3M
@@ -124,8 +124,8 @@ const IngresoChart = () => {
           <button
             onClick={() => setPeriod('6m')}
             className={`px-3 py-1 text-sm rounded-lg transition-colors ${period === '6m'
-                ? 'bg-primary-100 text-primary-700 font-medium'
-                : 'text-gray-600 hover:bg-gray-100'
+              ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 font-medium'
+              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
           >
             6M

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { productsAPI } from '../../services/api'
-import { 
-  AlertTriangle, 
-  Package, 
+import {
+  AlertTriangle,
+  Package,
   Calendar,
   RefreshCw,
   TrendingDown,
@@ -31,7 +31,7 @@ const AlertasInventario = () => {
         productsAPI.getLowStock(),
         productsAPI.getExpiringSoon()
       ])
-      
+
       setLowStockProducts(lowStockRes.data)
       setExpiringProducts(expiringRes.data)
     } catch (error) {
@@ -61,11 +61,10 @@ const AlertasInventario = () => {
 
   // Get stock urgency level
   const getStockUrgency = (producto) => {
-    const percentage = (producto.cantidad / producto.stock_minimo) * 100
-    if (producto.cantidad === 0) {
+    if (producto.stock_actual === 0) {
       return { label: 'Sin stock', color: 'bg-red-100 text-red-800 border-red-200' }
     }
-    if (percentage <= 50) {
+    if (producto.stock_actual <= 2) {
       return { label: 'Crítico', color: 'bg-red-100 text-red-800 border-red-200' }
     }
     return { label: 'Bajo', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' }
@@ -86,17 +85,17 @@ const AlertasInventario = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <AlertTriangle className="w-7 h-7 text-yellow-500" />
             Alertas de Inventario
           </h1>
-          <p className="text-gray-600 mt-1">
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
             {totalAlerts} alerta(s) activa(s)
           </p>
         </div>
         <button
           onClick={fetchAlerts}
-          className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition-colors"
         >
           <RefreshCw className="w-5 h-5" />
           Actualizar
@@ -141,16 +140,15 @@ const AlertasInventario = () => {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="border-b border-gray-200">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 dark:border-gray-700">
+        <div className="border-b border-gray-200 dark:border-gray-700 dark:border-gray-700">
           <div className="flex">
             <button
               onClick={() => setActiveTab('low-stock')}
-              className={`flex-1 px-6 py-4 font-medium transition-colors ${
-                activeTab === 'low-stock'
-                  ? 'text-primary-600 border-b-2 border-primary-600'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
+              className={`flex-1 px-6 py-4 font-medium transition-colors ${activeTab === 'low-stock'
+                ? 'text-primary-600 dark:text-primary-400 border-b-2 border-primary-600'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white dark:text-white'
+                }`}
             >
               <div className="flex items-center justify-center gap-2">
                 <TrendingDown className="w-5 h-5" />
@@ -159,11 +157,10 @@ const AlertasInventario = () => {
             </button>
             <button
               onClick={() => setActiveTab('expiring')}
-              className={`flex-1 px-6 py-4 font-medium transition-colors ${
-                activeTab === 'expiring'
-                  ? 'text-primary-600 border-b-2 border-primary-600'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
+              className={`flex-1 px-6 py-4 font-medium transition-colors ${activeTab === 'expiring'
+                ? 'text-primary-600 dark:text-primary-400 border-b-2 border-primary-600'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white dark:text-white'
+                }`}
             >
               <div className="flex items-center justify-center gap-2">
                 <Calendar className="w-5 h-5" />
@@ -179,7 +176,7 @@ const AlertasInventario = () => {
             {lowStockProducts.length === 0 ? (
               <div className="text-center py-12">
                 <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
                   No hay alertas de stock bajo
                 </h3>
                 <p className="text-gray-600">
@@ -193,12 +190,12 @@ const AlertasInventario = () => {
                   return (
                     <div
                       key={producto.id}
-                      className="bg-white border-2 border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                      className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow"
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
-                            <h3 className="font-semibold text-gray-900">
+                            <h3 className="font-semibold text-gray-900 dark:text-white dark:text-white">
                               {producto.nombre}
                             </h3>
                             <span className={`px-2 py-1 text-xs font-medium rounded border ${urgency.color}`}>
@@ -208,23 +205,23 @@ const AlertasInventario = () => {
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                             <div>
                               <span className="text-gray-600">Código:</span>
-                              <p className="font-medium text-gray-900">{producto.codigo}</p>
+                              <p className="font-medium text-gray-900 dark:text-white dark:text-white">{producto.codigo}</p>
                             </div>
                             <div>
                               <span className="text-gray-600">Stock Actual:</span>
                               <p className="font-medium text-red-600">
-                                {producto.cantidad} {producto.unidad}
+                                {producto.stock_actual}
                               </p>
                             </div>
                             <div>
                               <span className="text-gray-600">Stock Mínimo:</span>
-                              <p className="font-medium text-gray-900">
-                                {producto.stock_minimo} {producto.unidad}
+                              <p className="font-medium text-gray-900 dark:text-white dark:text-white">
+                                {producto.stock_minimo}
                               </p>
                             </div>
                             <div>
                               <span className="text-gray-600">Categoría:</span>
-                              <p className="font-medium text-gray-900">{producto.categoria}</p>
+                              <p className="font-medium text-gray-900 dark:text-white dark:text-white">{producto.categoria}</p>
                             </div>
                           </div>
                         </div>
@@ -249,7 +246,7 @@ const AlertasInventario = () => {
             {expiringProducts.length === 0 ? (
               <div className="text-center py-12">
                 <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
                   No hay productos por vencer
                 </h3>
                 <p className="text-gray-600">
@@ -261,16 +258,16 @@ const AlertasInventario = () => {
                 {expiringProducts.map((producto) => {
                   const urgency = getExpirationUrgency(producto.fecha_vencimiento)
                   const daysLeft = getDaysUntilExpiration(producto.fecha_vencimiento)
-                  
+
                   return (
                     <div
                       key={producto.id}
-                      className="bg-white border-2 border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                      className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow"
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
-                            <h3 className="font-semibold text-gray-900">
+                            <h3 className="font-semibold text-gray-900 dark:text-white dark:text-white">
                               {producto.nombre}
                             </h3>
                             <span className={`px-2 py-1 text-xs font-medium rounded border ${urgency.color}`}>
@@ -280,7 +277,7 @@ const AlertasInventario = () => {
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                             <div>
                               <span className="text-gray-600">Código:</span>
-                              <p className="font-medium text-gray-900">{producto.codigo}</p>
+                              <p className="font-medium text-gray-900 dark:text-white dark:text-white">{producto.codigo}</p>
                             </div>
                             <div>
                               <span className="text-gray-600">Vence en:</span>
@@ -290,14 +287,14 @@ const AlertasInventario = () => {
                             </div>
                             <div>
                               <span className="text-gray-600">Fecha de Venc.:</span>
-                              <p className="font-medium text-gray-900">
+                              <p className="font-medium text-gray-900 dark:text-white dark:text-white">
                                 {new Date(producto.fecha_vencimiento).toLocaleDateString()}
                               </p>
                             </div>
                             <div>
                               <span className="text-gray-600">Stock:</span>
-                              <p className="font-medium text-gray-900">
-                                {producto.cantidad} {producto.unidad}
+                              <p className="font-medium text-gray-900 dark:text-white dark:text-white">
+                                {producto.stock_actual}
                               </p>
                             </div>
                           </div>

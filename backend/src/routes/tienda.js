@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const tiendaController = require('../controllers/tiendaController');
 const auth = require('../middleware/auth');
+const uploadProduct = require('../middleware/uploadProduct');
 
 // All routes require authentication
 router.use(auth);
@@ -12,8 +13,14 @@ router.get('/', tiendaController.getAll);
 // Get low stock products
 router.get('/stock-bajo', tiendaController.getLowStock);
 
+// Get products expiring soon
+router.get('/por-vencer', tiendaController.getExpiringSoon);
+
 // Get product categories
 router.get('/categorias', tiendaController.getCategories);
+
+// Create product category
+router.post('/categorias', tiendaController.createCategory);
 
 // Get product by ID
 router.get('/:id', tiendaController.getById);
@@ -22,10 +29,10 @@ router.get('/:id', tiendaController.getById);
 router.get('/codigo/:codigo', tiendaController.getByCode);
 
 // Create product
-router.post('/', tiendaController.create);
+router.post('/', uploadProduct.single('imagen'), tiendaController.create);
 
 // Update product
-router.put('/:id', tiendaController.update);
+router.put('/:id', uploadProduct.single('imagen'), tiendaController.update);
 
 // Update product stock
 router.patch('/:id/stock', tiendaController.updateStock);

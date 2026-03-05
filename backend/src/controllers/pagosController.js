@@ -354,33 +354,73 @@ const pagosController = {
                     c.apellido as cliente_apellido,
                     c.codigo as cliente_codigo,
                     c.telefono,
-                    c.email
+                    c.email,
+                    'membresia' as tipo_origen
                 FROM clientes_membresias cm
                 JOIN membresias m ON cm.membresia_id = m.id
                 JOIN clientes c ON cm.cliente_id = c.id
                 WHERE cm.activo = 1 
                   AND cm.precio_pagado < m.precio
-                ORDER BY cm.fecha_inicio ASC
             `).all();
 
-            const stmtCuotas = db.prepare(`
+            // Find sales that are not fully paid
+            const ventasPendientes = db.prepare(`
+                SELECT 
+                    v.id as venta_id,
+                    v.fecha_hora as fecha_inicio,
+                    v.fecha_hora as fecha_vencimiento,
+                    v.monto_pagado as abonado,
+                    v.total as total,
+                    (v.total - v.monto_pagado) as deuda,
+                    'Venta (Productos)' as plan_nombre,
+                    c.id as cliente_id,
+                    c.nombre as cliente_nombre,
+                    c.apellido as cliente_apellido,
+                    c.codigo as cliente_codigo,
+                    c.telefono,
+                    c.email,
+                    'venta' as tipo_origen
+                FROM ventas v
+                JOIN clientes c ON v.cliente_id = c.id
+                WHERE v.estado_pago = 'pendiente' AND v.monto_pagado < v.total
+            `).all();
+
+            const stmtCuotasMembresia = db.prepare(`
                 SELECT id as cuota_id, numero_cuota, monto, fecha_vencimiento, estado 
                 FROM cuotas 
                 WHERE asignacion_id = ? AND estado = 'pendiente'
                 ORDER BY numero_cuota ASC
             `);
 
-            const pendientes = asignaciones.map(a => {
-                const cuotas = stmtCuotas.all(a.asignacion_id);
+            const stmtCuotasVenta = db.prepare(`
+                SELECT id as cuota_id, numero_cuota, monto, fecha_vencimiento, estado 
+                FROM cuotas 
+                WHERE venta_id = ? AND estado = 'pendiente'
+                ORDER BY numero_cuota ASC
+            `);
+
+            const pendientesMembresia = asignaciones.map(a => {
+                const cuotas = stmtCuotasMembresia.all(a.asignacion_id);
                 return {
                     ...a,
                     cuotas
                 };
             });
 
+            const pendientesVenta = ventasPendientes.map(v => {
+                const cuotas = stmtCuotasVenta.all(v.venta_id);
+                return {
+                    ...v,
+                    cuotas
+                };
+            });
+
+            // Combine both missing payments, ordered by date
+            const todosPendientes = [...pendientesMembresia, ...pendientesVenta].sort((a, b) => new Date(a.fecha_inicio) - new Date(b.fecha_inicio));
+
             res.json({
                 success: true,
-                data: pendientes
+                data: todosPendientes
             });
         } catch (error) {
             console.error('Error en getPagosPendientes:', error);
@@ -391,8 +431,8 @@ const pagosController = {
     // 7. Registrar un pago pendiente (Either generic debt or specific Cuota)
     registrarPagoPendiente: async (req, res) => {
         try {
-            const asignacionId = req.params.id;
-            const { monto, metodo_pago, notas, cuota_id } = req.body;
+            const idPlanOVenta = req.params.id; // Puede referirse a asignacion_id o venta_id dependiendo del body
+            const { monto, metodo_pago, notas, cuota_id, tipo_origen = 'membresia' } = req.body;
             const usuarioId = req.user.id;
 
             if (!monto || monto <= 0) {
@@ -408,49 +448,78 @@ const pagosController = {
                 });
             }
 
-            // Verify assignment
-            const asignacion = db.prepare(`
-                SELECT cm.*, m.precio as precio_total, m.nombre as plan_nombre
-                FROM clientes_membresias cm
-                JOIN membresias m ON cm.membresia_id = m.id
-                WHERE cm.id = ? AND cm.activo = 1
-            `).get(asignacionId);
+            // Validar origen
+            let entidadOriginal = null;
+            if (tipo_origen === 'membresia') {
+                entidadOriginal = db.prepare(`
+                    SELECT cm.*, m.precio as precio_total, m.nombre as plan_nombre
+                    FROM clientes_membresias cm
+                    JOIN membresias m ON cm.membresia_id = m.id
+                    WHERE cm.id = ? AND cm.activo = 1
+                `).get(idPlanOVenta);
+            } else if (tipo_origen === 'venta') {
+                entidadOriginal = db.prepare(`
+                    SELECT v.*, 'Venta (Productos)' as plan_nombre
+                    FROM ventas v
+                    WHERE v.id = ? AND v.estado_pago = 'pendiente'
+                 `).get(idPlanOVenta);
+            }
 
-            if (!asignacion) return res.status(404).json({ success: false, error: 'Asignación no encontrada o inactiva' });
+            if (!entidadOriginal) return res.status(404).json({ success: false, error: 'Registro de deuda no encontrado o inactivo' });
 
             // Begin transaction
             const transaction = db.transaction(() => {
                 const montoPago = parseFloat(monto);
-                const nuevoAbonado = asignacion.precio_pagado + montoPago;
 
-                let conceptoPago = `Abono a Membresía ${asignacion.plan_nombre} (Deuda parcial)`;
+                let conceptoPago = '';
+                let nuevoAbonado = 0;
+                let refCol = tipo_origen === 'membresia' ? 'asignacion_id' : 'venta_id';
+
+                if (tipo_origen === 'membresia') {
+                    nuevoAbonado = entidadOriginal.precio_pagado + montoPago;
+                    conceptoPago = `Abono a Membresía ${entidadOriginal.plan_nombre} (Deuda parcial)`;
+                } else {
+                    nuevoAbonado = entidadOriginal.monto_pagado + montoPago;
+                    conceptoPago = `Abono a Venta Cód. ${idPlanOVenta} (Deuda parcial)`;
+                }
 
                 if (cuota_id) {
-                    const cuota = db.prepare('SELECT * FROM cuotas WHERE id = ? AND asignacion_id = ?').get(cuota_id, asignacionId);
+                    let queryCuota = `SELECT * FROM cuotas WHERE id = ? AND ${refCol} = ?`;
+                    const cuota = db.prepare(queryCuota).get(cuota_id, idPlanOVenta);
+
                     if (!cuota || cuota.estado !== 'pendiente') {
                         throw new Error('La cuota especificada no existe o ya está pagada.');
                     }
                     if (montoPago !== cuota.monto) {
                         throw new Error(`El monto debe coincidir exactamente con el valor de la cuota (${cuota.monto}).`);
                     }
-                    conceptoPago = `Pago de Cuota ${cuota.numero_cuota} - Membresía ${asignacion.plan_nombre}`;
+                    conceptoPago = `Pago de Cuota ${cuota.numero_cuota} - ${entidadOriginal.plan_nombre}`;
                 }
 
-                // Update assignment paid amount
-                db.prepare(`
-                    UPDATE clientes_membresias 
-                    SET precio_pagado = ?
-                    WHERE id = ?
-                `).run(nuevoAbonado, asignacionId);
+                // Update assignment or sale paid amount
+                if (tipo_origen === 'membresia') {
+                    db.prepare(`
+                        UPDATE clientes_membresias 
+                        SET precio_pagado = ?
+                        WHERE id = ?
+                    `).run(nuevoAbonado, idPlanOVenta);
+                } else {
+                    const statusNuevo = nuevoAbonado >= entidadOriginal.total ? 'pagado' : 'pendiente';
+                    db.prepare(`
+                        UPDATE ventas 
+                        SET monto_pagado = ?, estado_pago = ?
+                        WHERE id = ?
+                    `).run(nuevoAbonado, statusNuevo, idPlanOVenta);
+                }
 
                 // Insert into pagos history
                 const result = db.prepare(`
                     INSERT INTO pagos (
                         cliente_id, tipo, referencia_id, concepto, monto,
                         metodo_pago, usuario_id
-                    ) VALUES (?, 'membresia', ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
                 `).run(
-                    asignacion.cliente_id, asignacionId,
+                    entidadOriginal.cliente_id, tipo_origen, idPlanOVenta,
                     conceptoPago,
                     montoPago, metodo_pago || 'efectivo', usuarioId
                 );
@@ -829,6 +898,121 @@ const pagosController = {
         } catch (error) {
             console.error('Error al enviar recibo por correo:', error);
             res.status(500).json({ success: false, error: 'Hubo un error al enviar el correo con el recibo.' });
+        }
+    },
+
+    // 12. Historial de Caja (aperturas y cierres)
+    getHistorialCaja: async (req, res) => {
+        try {
+            const { fecha_inicio, fecha_fin, limit = 50, offset = 0 } = req.query;
+
+            let queryStr = `
+                SELECT 
+                    c.*,
+                    u.nombre as cajero_nombre
+                FROM caja c
+                LEFT JOIN usuarios u ON c.usuario_id = u.id
+                WHERE 1=1
+            `;
+            const params = [];
+
+            if (fecha_inicio) {
+                queryStr += ` AND date(c.fecha) >= date(?)`;
+                params.push(fecha_inicio);
+            }
+            if (fecha_fin) {
+                queryStr += ` AND date(c.fecha) <= date(?)`;
+                params.push(fecha_fin);
+            }
+
+            queryStr += ` ORDER BY c.fecha_hora DESC LIMIT ? OFFSET ?`;
+            params.push(parseInt(limit), parseInt(offset));
+
+            const movimientos = db.prepare(queryStr).all(...params);
+
+            // Count total for pagination
+            let countQuery = `SELECT COUNT(*) as total FROM caja c WHERE 1=1`;
+            const countParams = [];
+            if (fecha_inicio) {
+                countQuery += ` AND date(c.fecha) >= date(?)`;
+                countParams.push(fecha_inicio);
+            }
+            if (fecha_fin) {
+                countQuery += ` AND date(c.fecha) <= date(?)`;
+                countParams.push(fecha_fin);
+            }
+            const { total } = db.prepare(countQuery).get(...countParams);
+
+            // Pair aperturas with cierres into sessions
+            const sesiones = [];
+            const movimientosCopy = [...movimientos].reverse(); // chronological order
+
+            for (let i = 0; i < movimientosCopy.length; i++) {
+                const mov = movimientosCopy[i];
+                if (mov.tipo === 'apertura') {
+                    // Look for its matching cierre
+                    const cierre = movimientosCopy.find((m, j) => j > i && m.tipo === 'cierre');
+                    sesiones.push({
+                        id: mov.id,
+                        apertura: {
+                            id: mov.id,
+                            fecha: mov.fecha,
+                            fecha_hora: mov.fecha_hora,
+                            monto_inicial: mov.monto_inicial,
+                            notas: mov.notas,
+                            cajero: mov.cajero_nombre || 'Admin'
+                        },
+                        cierre: cierre ? {
+                            id: cierre.id,
+                            fecha: cierre.fecha,
+                            fecha_hora: cierre.fecha_hora,
+                            monto_inicial: cierre.monto_inicial,
+                            ingresos_efectivo: cierre.ingresos_efectivo,
+                            ingresos_tarjeta: cierre.ingresos_tarjeta,
+                            ingresos_transferencia: cierre.ingresos_transferencia,
+                            egresos: cierre.egresos,
+                            monto_final: cierre.monto_final,
+                            diferencia: cierre.diferencia,
+                            notas: cierre.notas,
+                            cajero: cierre.cajero_nombre || 'Admin'
+                        } : null,
+                        estado: cierre ? 'cerrada' : 'abierta'
+                    });
+                }
+            }
+
+            // Also return flat list for flexible rendering
+            const formatted = movimientos.map(m => ({
+                id: m.id,
+                tipo: m.tipo,
+                fecha: m.fecha,
+                fecha_hora: m.fecha_hora,
+                monto_inicial: m.monto_inicial,
+                ingresos_efectivo: m.ingresos_efectivo,
+                ingresos_tarjeta: m.ingresos_tarjeta,
+                ingresos_transferencia: m.ingresos_transferencia,
+                egresos: m.egresos,
+                monto_final: m.monto_final,
+                diferencia: m.diferencia,
+                notas: m.notas,
+                cajero: m.cajero_nombre || 'Admin'
+            }));
+
+            res.json({
+                success: true,
+                data: {
+                    movimientos: formatted,
+                    sesiones: sesiones.reverse(), // most recent first
+                    pagination: {
+                        total,
+                        limit: parseInt(limit),
+                        offset: parseInt(offset)
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Error en getHistorialCaja:', error);
+            res.status(500).json({ success: false, error: 'Error al obtener historial de caja' });
         }
     }
 

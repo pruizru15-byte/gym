@@ -4,6 +4,7 @@ import { Users, CreditCard, TrendingUp, Calendar } from 'lucide-react'
 import MetricCard from './MetricCard'
 import AlertasWidget from './AlertasWidget'
 import IngresoChart from './IngresoChart'
+import ActividadReciente from './ActividadReciente'
 import toast from 'react-hot-toast'
 
 /**
@@ -67,8 +68,8 @@ const Dashboard = () => {
     <div className="space-y-6">
       {/* Page header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600 mt-1">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">
           Resumen general del gimnasio
         </p>
       </div>
@@ -109,7 +110,7 @@ const Dashboard = () => {
         />
       </div>
 
-      {/* Content grid */}
+      {/* Content grid: chart + alerts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Income chart - takes 2 columns */}
         <div className="lg:col-span-2">
@@ -122,15 +123,8 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Recent activity section (placeholder for future) */}
-      <div className="card">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Actividad Reciente
-        </h2>
-        <div className="text-center py-8 text-gray-500">
-          <p>No hay actividad reciente para mostrar</p>
-        </div>
-      </div>
+      {/* Recent activity - full width */}
+      <ActividadReciente />
     </div>
   )
 }

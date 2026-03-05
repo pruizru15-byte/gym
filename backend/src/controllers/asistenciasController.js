@@ -6,12 +6,12 @@ const { formatDate, formatDateTime } = require('../utils/dateUtils');
  */
 const getAll = (req, res) => {
     try {
-        const { page = 1, limit = 50, fecha, cliente_id } = req.query;
+        const { page = 1, limit = 50, fecha, cliente_id, fecha_inicio, fecha_fin, busqueda } = req.query;
         const offset = (page - 1) * limit;
 
         let query = `
             SELECT a.*, 
-                   c.codigo, c.nombre as cliente_nombre, c.apellido as cliente_apellido,
+                   c.codigo, c.nombre as cliente_nombre, c.apellido as cliente_apellido, c.foto as cliente_foto,
                    u.nombre as usuario_nombre
             FROM asistencias a
             JOIN clientes c ON a.cliente_id = c.id
@@ -19,35 +19,123 @@ const getAll = (req, res) => {
             WHERE 1=1
         `;
         const params = [];
+        let filterClause = '';
 
         if (fecha) {
-            query += " AND date(a.fecha_hora, 'localtime') = ?";
+            filterClause += " AND date(a.fecha_hora, 'localtime') = ?";
             params.push(fecha);
         }
 
+        if (fecha_inicio && fecha_fin) {
+            filterClause += " AND date(a.fecha_hora, 'localtime') BETWEEN ? AND ?";
+            params.push(fecha_inicio, fecha_fin);
+        } else if (fecha_inicio) {
+            filterClause += " AND date(a.fecha_hora, 'localtime') >= ?";
+            params.push(fecha_inicio);
+        } else if (fecha_fin) {
+            filterClause += " AND date(a.fecha_hora, 'localtime') <= ?";
+            params.push(fecha_fin);
+        }
+
         if (cliente_id) {
-            query += ' AND a.cliente_id = ?';
+            filterClause += ' AND a.cliente_id = ?';
             params.push(cliente_id);
         }
 
+        if (busqueda) {
+            filterClause += " AND (c.nombre LIKE ? OR c.apellido LIKE ? OR c.codigo LIKE ?)";
+            const searchTerm = `%${busqueda}%`;
+            params.push(searchTerm, searchTerm, searchTerm);
+        }
+
+        query += filterClause;
         query += ' ORDER BY a.fecha_hora DESC LIMIT ? OFFSET ?';
-        params.push(parseInt(limit), offset);
+        const queryParams = [...params, parseInt(limit), offset];
 
-        const asistencias = db.prepare(query).all(...params);
+        const asistencias = db.prepare(query).all(...queryParams);
 
-        // Get total count
-        let countQuery = 'SELECT COUNT(*) as total FROM asistencias WHERE 1=1';
-        const countParams = [];
-        if (fecha) {
-            countQuery += " AND date(fecha_hora, 'localtime') = ?";
-            countParams.push(fecha);
+        // Get total count with same filters
+        let countQuery = `
+            SELECT COUNT(*) as total FROM asistencias a
+            JOIN clientes c ON a.cliente_id = c.id
+            WHERE 1=1 ${filterClause}
+        `;
+        const { total } = db.prepare(countQuery).get(...params);
+
+        // --- Resumen / summary stats ---
+        const today = formatDate(new Date());
+
+        // Total active clients
+        const { totalClientes } = db.prepare(
+            "SELECT COUNT(*) as totalClientes FROM clientes WHERE activo = 1"
+        ).get();
+
+        // Attendance entries today
+        const { asistenciasHoy } = db.prepare(
+            "SELECT COUNT(DISTINCT cliente_id) as asistenciasHoy FROM asistencias WHERE date(fecha_hora, 'localtime') = ?"
+        ).get(today);
+
+        // Average daily attendance in the filtered range (or last 30 days)
+        let avgQuery;
+        const avgParams = [];
+        if (fecha_inicio && fecha_fin) {
+            avgQuery = `
+                SELECT COALESCE(AVG(cnt), 0) as promedioAsistencias FROM (
+                    SELECT date(fecha_hora, 'localtime') as dia, COUNT(DISTINCT cliente_id) as cnt
+                    FROM asistencias
+                    WHERE date(fecha_hora, 'localtime') BETWEEN ? AND ?
+                    GROUP BY dia
+                )
+            `;
+            avgParams.push(fecha_inicio, fecha_fin);
+        } else {
+            avgQuery = `
+                SELECT COALESCE(AVG(cnt), 0) as promedioAsistencias FROM (
+                    SELECT date(fecha_hora, 'localtime') as dia, COUNT(DISTINCT cliente_id) as cnt
+                    FROM asistencias
+                    WHERE fecha_hora >= datetime('now', '-30 days')
+                    GROUP BY dia
+                )
+            `;
         }
-        if (cliente_id) {
-            countQuery += ' AND cliente_id = ?';
-            countParams.push(cliente_id);
-        }
+        const { promedioAsistencias } = db.prepare(avgQuery).get(...avgParams);
 
-        const { total } = db.prepare(countQuery).get(...countParams);
+        // Average session duration (hours) — based on entrada/salida pairs on the same day
+        let durQuery;
+        const durParams = [];
+        if (fecha_inicio && fecha_fin) {
+            durQuery = `
+                SELECT COALESCE(AVG(duracion), 0) as duracionPromedio FROM (
+                    SELECT 
+                        e.cliente_id,
+                        date(e.fecha_hora, 'localtime') as dia,
+                        (julianday(s.fecha_hora) - julianday(e.fecha_hora)) * 24 as duracion
+                    FROM asistencias e
+                    INNER JOIN asistencias s 
+                        ON e.cliente_id = s.cliente_id 
+                        AND date(e.fecha_hora, 'localtime') = date(s.fecha_hora, 'localtime')
+                        AND e.tipo = 'entrada' AND s.tipo = 'salida'
+                    WHERE date(e.fecha_hora, 'localtime') BETWEEN ? AND ?
+                )
+            `;
+            durParams.push(fecha_inicio, fecha_fin);
+        } else {
+            durQuery = `
+                SELECT COALESCE(AVG(duracion), 0) as duracionPromedio FROM (
+                    SELECT 
+                        e.cliente_id,
+                        date(e.fecha_hora, 'localtime') as dia,
+                        (julianday(s.fecha_hora) - julianday(e.fecha_hora)) * 24 as duracion
+                    FROM asistencias e
+                    INNER JOIN asistencias s 
+                        ON e.cliente_id = s.cliente_id 
+                        AND date(e.fecha_hora, 'localtime') = date(s.fecha_hora, 'localtime')
+                        AND e.tipo = 'entrada' AND s.tipo = 'salida'
+                    WHERE e.fecha_hora >= datetime('now', '-30 days')
+                )
+            `;
+        }
+        const { duracionPromedio } = db.prepare(durQuery).get(...durParams);
 
         res.json({
             asistencias,
@@ -56,6 +144,12 @@ const getAll = (req, res) => {
                 limit: parseInt(limit),
                 total,
                 pages: Math.ceil(total / limit)
+            },
+            resumen: {
+                totalClientes,
+                asistenciasHoy,
+                promedioAsistencias: Math.round(promedioAsistencias * 10) / 10,
+                duracionPromedio: Math.round(duracionPromedio * 10) / 10
             }
         });
     } catch (error) {

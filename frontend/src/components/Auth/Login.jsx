@@ -77,20 +77,20 @@ const Login = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100 dark:from-gray-900 dark:to-gray-800 p-4">
       <div className="w-full max-w-md">
         {/* Logo and title */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-600 rounded-2xl mb-4">
             <Dumbbell className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">GymPro</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">GymPro</h1>
           <p className="text-gray-600">Sistema de Gestión de Gimnasio</p>
         </div>
 
         {/* Login form */}
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
             Iniciar Sesión
           </h2>
 
@@ -150,7 +150,7 @@ const Login = () => {
                 <p className="mt-1 text-sm text-red-600">{errors.password}</p>
               )}
               <div className="flex justify-end mt-1">
-                <Link to="/forgot-password" className="text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline">
+                <Link to="/forgot-password" className="text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 hover:underline">
                   ¿Olvidaste tu contraseña?
                 </Link>
               </div>
@@ -177,15 +177,15 @@ const Login = () => {
           </form>
 
           {/* Demo credentials info */}
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <p className="text-xs text-gray-600 text-center">
+          <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+            <p className="text-xs text-gray-600 dark:text-gray-400 text-center">
               <strong>Demo:</strong> admin@gym.com / admin123
             </p>
           </div>
         </div>
 
         {/* Footer */}
-        <p className="text-center text-sm text-gray-600 mt-6">
+        <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-6">
           © 2024 GymPro. Todos los derechos reservados.
         </p>
       </div>

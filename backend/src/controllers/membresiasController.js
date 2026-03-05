@@ -348,7 +348,13 @@ const getClientMemberships = (req, res) => {
  */
 const getExpiring = (req, res) => {
     try {
-        const { days = 7 } = req.query;
+        const { days = 30 } = req.query;
+
+        // Calculamos la fecha límite en JS y la pasamos como string ISO
+        const limitDate = new Date();
+        limitDate.setDate(limitDate.getDate() + parseInt(days));
+        const limitStr = limitDate.toISOString().split('T')[0]; // 'YYYY-MM-DD'
+        const todayStr = new Date().toISOString().split('T')[0];
 
         const membresias = db.prepare(`
             SELECT cm.*,
@@ -359,9 +365,9 @@ const getExpiring = (req, res) => {
             JOIN membresias m ON cm.membresia_id = m.id
             JOIN clientes c ON cm.cliente_id = c.id
             WHERE cm.activo = 1 
-            AND cm.fecha_vencimiento BETWEEN date('now') AND date('now', '+' || ? || ' days')
+            AND cm.fecha_vencimiento BETWEEN ? AND ?
             ORDER BY cm.fecha_vencimiento ASC
-            `).all(parseInt(days));
+            `).all(todayStr, limitStr);
 
         res.json(membresias);
     } catch (error) {

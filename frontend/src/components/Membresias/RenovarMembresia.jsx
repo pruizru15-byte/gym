@@ -222,7 +222,7 @@ const RenovarMembresia = () => {
       <div className="mb-6">
         <button
           onClick={() => navigate(`/clientes/${miembroId}`)}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+          className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white mb-4"
         >
           <ArrowLeft size={20} />
           Volver al cliente
@@ -230,10 +230,10 @@ const RenovarMembresia = () => {
 
         <div className="flex items-center gap-4">
           <div className="h-16 w-16 rounded-full bg-primary-100 flex items-center justify-center">
-            <RefreshCw className="text-primary-600" size={24} />
+            <RefreshCw className="text-primary-600 dark:text-primary-400 dark:text-primary-400" size={24} />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Renovar Membresía</h1>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white dark:text-white">Renovar Membresía</h1>
             <p className="text-gray-600">{cliente?.nombre}</p>
           </div>
         </div>
@@ -242,7 +242,7 @@ const RenovarMembresia = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - Form */}
         <div className="lg:col-span-2">
-          <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm">
+          <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
             <div className="p-6 space-y-6">
               {/* Current Membership Info */}
               {membresiaActual && (
@@ -278,7 +278,7 @@ const RenovarMembresia = () => {
 
               {/* Select Plan */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                   Selecciona un Plan *
                 </label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -289,16 +289,16 @@ const RenovarMembresia = () => {
                       onClick={() => handlePlanSelect(plan.id.toString())}
                       className={`p-4 border-2 rounded-lg text-left transition ${formData.planId === plan.id.toString()
                         ? 'border-primary-500 bg-primary-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:border-gray-600 dark:border-gray-600'
                         }`}
                     >
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-semibold text-gray-900">{plan.nombre}</h4>
+                        <h4 className="font-semibold text-gray-900 dark:text-white dark:text-white">{plan.nombre}</h4>
                         {formData.planId === plan.id.toString() && (
-                          <CheckCircle className="text-primary-600" size={20} />
+                          <CheckCircle className="text-primary-600 dark:text-primary-400 dark:text-primary-400" size={20} />
                         )}
                       </div>
-                      <p className="text-2xl font-bold text-primary-600 mb-1">
+                      <p className="text-2xl font-bold text-primary-600 dark:text-primary-400 mb-1">
                         {formatCurrency(plan.precio)}
                       </p>
                       <p className="text-sm text-gray-600">
@@ -317,7 +317,7 @@ const RenovarMembresia = () => {
 
               {/* Start Date */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Fecha de Inicio *
                 </label>
                 <div className="relative">
@@ -327,7 +327,7 @@ const RenovarMembresia = () => {
                     name="fechaInicio"
                     value={formData.fechaInicio}
                     onChange={handleChange}
-                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${errors.fechaInicio ? 'border-red-500' : 'border-gray-300'
+                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${errors.fechaInicio ? 'border-red-500' : 'border-gray-300 dark:border-gray-600 dark:border-gray-600'
                       }`}
                   />
                 </div>
@@ -341,14 +341,14 @@ const RenovarMembresia = () => {
 
               {/* Payment Method */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Método de Pago
                 </label>
                 <select
                   name="metodoPago"
                   value={formData.metodoPago}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 >
                   <option value="efectivo">Efectivo</option>
                   <option value="tarjeta">Tarjeta</option>
@@ -358,8 +358,8 @@ const RenovarMembresia = () => {
               </div>
 
               {/* Installments / Cuotas Option */}
-              <div className="bg-gray-50 border border-gray-200 p-4 rounded-xl">
-                <h4 className="font-semibold text-gray-800 mb-4">Opciones de Pago</h4>
+              <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-4 rounded-xl">
+                <h4 className="font-semibold text-gray-800 dark:text-gray-200 mb-4">Opciones de Pago</h4>
 
                 <div className="flex flex-col sm:flex-row gap-6">
                   <label className="flex items-center gap-2 cursor-pointer">
@@ -368,9 +368,9 @@ const RenovarMembresia = () => {
                       name="tipoPago"
                       checked={!formData.isCuotas}
                       onChange={() => setFormData({ ...formData, isCuotas: false })}
-                      className="w-4 h-4 text-primary-600 focus:ring-primary-500"
+                      className="w-4 h-4 text-primary-600 dark:text-primary-400 focus:ring-primary-500"
                     />
-                    <span className="text-gray-700 font-medium">Pago Completado</span>
+                    <span className="text-gray-700 dark:text-gray-300 font-medium">Pago Completado</span>
                   </label>
 
                   <label className="flex items-center gap-2 cursor-pointer">
@@ -379,34 +379,34 @@ const RenovarMembresia = () => {
                       name="tipoPago"
                       checked={formData.isCuotas}
                       onChange={() => setFormData({ ...formData, isCuotas: true })}
-                      className="w-4 h-4 text-primary-600 focus:ring-primary-500"
+                      className="w-4 h-4 text-primary-600 dark:text-primary-400 focus:ring-primary-500"
                     />
-                    <span className="text-gray-700 font-medium">Pagar en Cuotas</span>
+                    <span className="text-gray-700 dark:text-gray-300 font-medium">Pagar en Cuotas</span>
                   </label>
                 </div>
 
                 {formData.isCuotas && (
                   <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Número de Cuotas</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Número de Cuotas</label>
                       <input
                         type="number"
                         min="2"
                         max="12"
                         value={formData.numCuotas}
                         onChange={(e) => setFormData({ ...formData, numCuotas: parseInt(e.target.value) || 2 })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500"
                         required
                       />
                     </div>
                     <div className="flex flex-col justify-center">
                       <p className="text-sm font-medium text-gray-700">Monto Primera Cuota (Hoy):</p>
-                      <p className="text-lg font-bold text-primary-600">
+                      <p className="text-lg font-bold text-primary-600 dark:text-primary-400 dark:text-primary-400">
                         {formData.monto && formData.numCuotas
                           ? formatCurrency(parseFloat(formData.monto) / formData.numCuotas)
                           : '-'}
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                         (Las siguientes cuotas se cargarán como pendientes)
                       </p>
                     </div>
@@ -417,7 +417,7 @@ const RenovarMembresia = () => {
               {/* Amount */}
               {!formData.isCuotas && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Monto a Pagar (Hoy) *
                   </label>
                   <div className="relative">
@@ -428,7 +428,7 @@ const RenovarMembresia = () => {
                       name="monto"
                       value={formData.monto}
                       onChange={handleChange}
-                      className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${errors.monto ? 'border-red-500' : 'border-gray-300'
+                      className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${errors.monto ? 'border-red-500' : 'border-gray-300 dark:border-gray-600 dark:border-gray-600'
                         }`}
                       placeholder="0.00"
                     />
@@ -449,7 +449,7 @@ const RenovarMembresia = () => {
 
               {/* Notes */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Notas
                 </label>
                 <textarea
@@ -457,19 +457,19 @@ const RenovarMembresia = () => {
                   value={formData.notas}
                   onChange={handleChange}
                   rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="Notas adicionales sobre el pago..."
                 />
               </div>
             </div>
 
             {/* Form Actions */}
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-lg flex justify-end gap-3">
+            <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 rounded-b-lg flex justify-end gap-3">
               <button
                 type="button"
                 onClick={() => navigate(`/clientes/${miembroId}`)}
                 disabled={submitting}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition disabled:opacity-50"
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition disabled:opacity-50"
               >
                 Cancelar
               </button>
@@ -496,17 +496,17 @@ const RenovarMembresia = () => {
 
         {/* Right Column - Summary */}
         <div className="lg:col-span-1">
-          <div className="bg-white rounded-lg shadow-sm p-6 sticky top-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Resumen</h3>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 sticky top-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Resumen</h3>
 
             <div className="space-y-4">
               {/* Client Info */}
-              <div className="flex items-center gap-3 pb-4 border-b border-gray-200">
+              <div className="flex items-center gap-3 pb-4 border-b border-gray-200 dark:border-gray-700 dark:border-gray-700">
                 <div className="h-12 w-12 rounded-full bg-primary-100 flex items-center justify-center">
-                  <User className="text-primary-600" size={20} />
+                  <User className="text-primary-600 dark:text-primary-400 dark:text-primary-400" size={20} />
                 </div>
                 <div>
-                  <p className="font-semibold text-gray-900">{cliente?.nombre}</p>
+                  <p className="font-semibold text-gray-900 dark:text-white dark:text-white">{cliente?.nombre}</p>
                   <p className="text-sm text-gray-500">{cliente?.email}</p>
                 </div>
               </div>
@@ -515,20 +515,20 @@ const RenovarMembresia = () => {
               {selectedPlan ? (
                 <>
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Plan Seleccionado</p>
-                    <p className="font-semibold text-gray-900">{selectedPlan.nombre}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Plan Seleccionado</p>
+                    <p className="font-semibold text-gray-900 dark:text-white dark:text-white">{selectedPlan.nombre}</p>
                   </div>
 
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Precio</p>
-                    <p className="text-2xl font-bold text-primary-600">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Precio</p>
+                    <p className="text-2xl font-bold text-primary-600 dark:text-primary-400 dark:text-primary-400">
                       {formatCurrency(selectedPlan.precio)}
                     </p>
                   </div>
 
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Duración</p>
-                    <p className="font-semibold text-gray-900">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Duración</p>
+                    <p className="font-semibold text-gray-900 dark:text-white dark:text-white">
                       {selectedPlan.duracion} {selectedPlan.tipoDuracion}
                     </p>
                   </div>
@@ -536,15 +536,15 @@ const RenovarMembresia = () => {
                   {formData.fechaInicio && (
                     <>
                       <div>
-                        <p className="text-sm text-gray-500 mb-1">Fecha de Inicio</p>
-                        <p className="font-semibold text-gray-900">
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Fecha de Inicio</p>
+                        <p className="font-semibold text-gray-900 dark:text-white dark:text-white">
                           {formatDate(formData.fechaInicio)}
                         </p>
                       </div>
 
                       {newExpirationDate && (
                         <div>
-                          <p className="text-sm text-gray-500 mb-1">Nueva Fecha de Vencimiento</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Nueva Fecha de Vencimiento</p>
                           <p className="font-semibold text-green-600">
                             {formatDate(newExpirationDate)}
                           </p>

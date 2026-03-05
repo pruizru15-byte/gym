@@ -12,6 +12,7 @@ router.get('/', pagosController.getHistorialPagos);
 // Cash Register State (Caja)
 router.get('/caja/estado', pagosController.getEstadoCaja);
 router.post('/caja/abrir', pagosController.abrirCaja);
+router.get('/caja/historial', pagosController.getHistorialCaja);
 router.post('/corte-caja', pagosController.registrarCorteCaja); // Cerrar caja
 
 // Pending Payments (Deudas)

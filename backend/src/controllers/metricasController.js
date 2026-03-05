@@ -7,26 +7,26 @@ const { formatDate } = require('../utils/dateUtils');
 const getDashboard = (req, res) => {
     try {
         const today = formatDate(new Date());
-        
+
         // Active clients
         const { clientes_activos } = db.prepare(`
             SELECT COUNT(*) as clientes_activos FROM clientes WHERE activo = 1
         `).get();
-        
+
         // Clients with active memberships
         const { membresias_activas } = db.prepare(`
             SELECT COUNT(DISTINCT cliente_id) as membresias_activas
             FROM clientes_membresias
             WHERE activo = 1 AND fecha_vencimiento >= date('now')
         `).get();
-        
+
         // Today's attendance
         const { asistencias_hoy } = db.prepare(`
             SELECT COUNT(*) as asistencias_hoy
             FROM asistencias
             WHERE date(fecha_hora) = ?
         `).get(today);
-        
+
         // Today's sales
         const todaySales = db.prepare(`
             SELECT 
@@ -35,14 +35,14 @@ const getDashboard = (req, res) => {
             FROM ventas
             WHERE date(fecha_hora) = ?
         `).get(today);
-        
+
         // This month's revenue
         const monthRevenue = db.prepare(`
             SELECT COALESCE(SUM(monto), 0) as ingresos_mes
             FROM pagos
             WHERE strftime('%Y-%m', fecha_hora) = strftime('%Y-%m', 'now')
         `).get();
-        
+
         // Expiring memberships (next 7 days)
         const { membresias_por_vencer } = db.prepare(`
             SELECT COUNT(*) as membresias_por_vencer
@@ -50,14 +50,14 @@ const getDashboard = (req, res) => {
             WHERE activo = 1 
             AND fecha_vencimiento BETWEEN date('now') AND date('now', '+7 days')
         `).get();
-        
+
         // Low stock products
         const { productos_stock_bajo } = db.prepare(`
             SELECT COUNT(*) as productos_stock_bajo
             FROM productos
             WHERE activo = 1 AND stock_actual <= stock_minimo
         `).get();
-        
+
         // Machines needing maintenance
         const { maquinas_mantenimiento } = db.prepare(`
             SELECT COUNT(*) as maquinas_mantenimiento
@@ -66,14 +66,14 @@ const getDashboard = (req, res) => {
             AND proximo_mantenimiento IS NOT NULL
             AND proximo_mantenimiento <= date('now', '+7 days')
         `).get();
-        
+
         // Unread notifications
         const { notificaciones_pendientes } = db.prepare(`
             SELECT COUNT(*) as notificaciones_pendientes
             FROM notificaciones
             WHERE leida = 0
         `).get();
-        
+
         res.json({
             clientes: {
                 activos: clientes_activos,
@@ -105,12 +105,12 @@ const getDashboard = (req, res) => {
 const getRevenue = (req, res) => {
     try {
         const { fecha_inicio, fecha_fin, agrupacion = 'dia' } = req.query; // agrupacion: 'dia', 'mes', 'año'
-        
+
         let dateFilter = '';
         let groupBy = '';
         let dateFormat = '';
         const params = [];
-        
+
         if (fecha_inicio && fecha_fin) {
             dateFilter = 'WHERE date(fecha_hora) BETWEEN ? AND ?';
             params.push(fecha_inicio, fecha_fin);
@@ -118,7 +118,7 @@ const getRevenue = (req, res) => {
             // Default to current month
             dateFilter = "WHERE strftime('%Y-%m', fecha_hora) = strftime('%Y-%m', 'now')";
         }
-        
+
         // Set grouping
         switch (agrupacion) {
             case 'mes':
@@ -133,7 +133,7 @@ const getRevenue = (req, res) => {
                 groupBy = "date(fecha_hora)";
                 dateFormat = "date(fecha_hora) as periodo";
         }
-        
+
         // Revenue by period
         const ingresosPorPeriodo = db.prepare(`
             SELECT ${dateFormat},
@@ -144,7 +144,7 @@ const getRevenue = (req, res) => {
             GROUP BY ${groupBy}
             ORDER BY periodo DESC
         `).all(...params);
-        
+
         // Revenue by type
         const ingresosPorTipo = db.prepare(`
             SELECT tipo,
@@ -154,7 +154,7 @@ const getRevenue = (req, res) => {
             ${dateFilter}
             GROUP BY tipo
         `).all(...params);
-        
+
         // Revenue by payment method
         const ingresosPorMetodo = db.prepare(`
             SELECT metodo_pago,
@@ -164,7 +164,7 @@ const getRevenue = (req, res) => {
             ${dateFilter}
             GROUP BY metodo_pago
         `).all(...params);
-        
+
         // Total revenue
         const { total_ingresos, total_transacciones } = db.prepare(`
             SELECT 
@@ -173,7 +173,7 @@ const getRevenue = (req, res) => {
             FROM pagos
             ${dateFilter}
         `).get(...params);
-        
+
         res.json({
             total_ingresos,
             total_transacciones,
@@ -194,10 +194,10 @@ const getRevenue = (req, res) => {
 const getExpenses = (req, res) => {
     try {
         const { fecha_inicio, fecha_fin } = req.query;
-        
+
         let dateFilter = '';
         const params = [];
-        
+
         if (fecha_inicio && fecha_fin) {
             dateFilter = 'WHERE fecha BETWEEN ? AND ?';
             params.push(fecha_inicio, fecha_fin);
@@ -205,7 +205,7 @@ const getExpenses = (req, res) => {
             // Default to current month
             dateFilter = "WHERE strftime('%Y-%m', fecha) = strftime('%Y-%m', 'now')";
         }
-        
+
         // Total expenses
         const { total_egresos, total_transacciones } = db.prepare(`
             SELECT 
@@ -214,7 +214,7 @@ const getExpenses = (req, res) => {
             FROM egresos
             ${dateFilter}
         `).get(...params);
-        
+
         // Expenses by category
         const egresosPorCategoria = db.prepare(`
             SELECT categoria,
@@ -225,7 +225,7 @@ const getExpenses = (req, res) => {
             GROUP BY categoria
             ORDER BY total DESC
         `).all(...params);
-        
+
         // Expenses by date
         const egresosPorDia = db.prepare(`
             SELECT fecha,
@@ -236,7 +236,7 @@ const getExpenses = (req, res) => {
             GROUP BY fecha
             ORDER BY fecha DESC
         `).all(...params);
-        
+
         res.json({
             total_egresos,
             total_transacciones,
@@ -255,10 +255,10 @@ const getExpenses = (req, res) => {
 const getAttendance = (req, res) => {
     try {
         const { fecha_inicio, fecha_fin } = req.query;
-        
+
         let dateFilter = '';
         const params = [];
-        
+
         if (fecha_inicio && fecha_fin) {
             dateFilter = 'WHERE date(fecha_hora) BETWEEN ? AND ?';
             params.push(fecha_inicio, fecha_fin);
@@ -266,13 +266,13 @@ const getAttendance = (req, res) => {
             // Default to last 30 days
             dateFilter = "WHERE fecha_hora >= datetime('now', '-30 days')";
         }
-        
+
         // Total attendance
         const { total_asistencias } = db.prepare(`
             SELECT COUNT(*) as total_asistencias
             FROM asistencias ${dateFilter}
         `).get(...params);
-        
+
         // Attendance by day
         const asistenciasPorDia = db.prepare(`
             SELECT date(fecha_hora) as fecha, COUNT(*) as total
@@ -280,7 +280,7 @@ const getAttendance = (req, res) => {
             GROUP BY date(fecha_hora)
             ORDER BY fecha DESC
         `).all(...params);
-        
+
         // Attendance by hour
         const asistenciasPorHora = db.prepare(`
             SELECT strftime('%H', fecha_hora) as hora, COUNT(*) as total
@@ -288,7 +288,7 @@ const getAttendance = (req, res) => {
             GROUP BY hora
             ORDER BY total DESC
         `).all(...params);
-        
+
         // Top clients
         const topClientes = db.prepare(`
             SELECT c.codigo, c.nombre, c.apellido, COUNT(*) as visitas
@@ -299,12 +299,12 @@ const getAttendance = (req, res) => {
             ORDER BY visitas DESC
             LIMIT 10
         `).all(...params);
-        
+
         // Average daily attendance
-        const avgDaily = asistenciasPorDia.length > 0 
+        const avgDaily = asistenciasPorDia.length > 0
             ? Math.round(total_asistencias / asistenciasPorDia.length)
             : 0;
-        
+
         res.json({
             total_asistencias,
             promedio_diario: avgDaily,
@@ -329,14 +329,14 @@ const getMemberships = (req, res) => {
             FROM clientes_membresias
             WHERE activo = 1 AND fecha_vencimiento >= date('now')
         `).get();
-        
+
         // Expired memberships
         const { vencidas } = db.prepare(`
             SELECT COUNT(*) as vencidas
             FROM clientes_membresias
             WHERE activo = 1 AND fecha_vencimiento < date('now')
         `).get();
-        
+
         // Expiring soon (7 days)
         const { por_vencer } = db.prepare(`
             SELECT COUNT(*) as por_vencer
@@ -344,7 +344,7 @@ const getMemberships = (req, res) => {
             WHERE activo = 1 
             AND fecha_vencimiento BETWEEN date('now') AND date('now', '+7 days')
         `).get();
-        
+
         // Memberships by plan
         const porPlan = db.prepare(`
             SELECT m.nombre, m.precio, COUNT(*) as cantidad
@@ -354,26 +354,28 @@ const getMemberships = (req, res) => {
             GROUP BY m.id
             ORDER BY cantidad DESC
         `).all();
-        
-        // New memberships this month
+
+        // New memberships this month (by creation date, i.e. when purchased)
         const { nuevas_mes } = db.prepare(`
             SELECT COUNT(*) as nuevas_mes
             FROM clientes_membresias
-            WHERE strftime('%Y-%m', fecha_inicio) = strftime('%Y-%m', 'now')
+            WHERE strftime('%Y-%m', fecha_creacion) = strftime('%Y-%m', 'now')
         `).get();
-        
-        // Renewals this month
+
+        // Renewals this month (memberships created this month for clients 
+        // who already had a prior membership)
         const { renovaciones_mes } = db.prepare(`
             SELECT COUNT(*) as renovaciones_mes
-            FROM clientes_membresias
-            WHERE strftime('%Y-%m', fecha_inicio) = strftime('%Y-%m', 'now')
-            AND cliente_id IN (
-                SELECT cliente_id FROM clientes_membresias 
-                WHERE id != clientes_membresias.id
-                GROUP BY cliente_id HAVING COUNT(*) > 1
+            FROM clientes_membresias cm
+            WHERE strftime('%Y-%m', cm.fecha_creacion) = strftime('%Y-%m', 'now')
+            AND EXISTS (
+                SELECT 1 FROM clientes_membresias cm2
+                WHERE cm2.cliente_id = cm.cliente_id
+                AND cm2.id != cm.id
+                AND cm2.fecha_creacion < cm.fecha_creacion
             )
         `).get();
-        
+
         res.json({
             activas,
             vencidas,
@@ -398,21 +400,21 @@ const getProducts = (req, res) => {
             SELECT COUNT(*) as total_productos
             FROM productos WHERE activo = 1
         `).get();
-        
+
         // Low stock products
         const { stock_bajo } = db.prepare(`
             SELECT COUNT(*) as stock_bajo
             FROM productos
             WHERE activo = 1 AND stock_actual <= stock_minimo
         `).get();
-        
+
         // Out of stock
         const { sin_stock } = db.prepare(`
             SELECT COUNT(*) as sin_stock
             FROM productos
             WHERE activo = 1 AND stock_actual = 0
         `).get();
-        
+
         // Products by category
         const porCategoria = db.prepare(`
             SELECT categoria, COUNT(*) as cantidad
@@ -421,14 +423,14 @@ const getProducts = (req, res) => {
             GROUP BY categoria
             ORDER BY cantidad DESC
         `).all();
-        
+
         // Total inventory value
         const { valor_inventario } = db.prepare(`
             SELECT COALESCE(SUM(stock_actual * precio_costo), 0) as valor_inventario
             FROM productos
             WHERE activo = 1 AND precio_costo IS NOT NULL
         `).get();
-        
+
         res.json({
             total_productos,
             stock_bajo,
@@ -452,7 +454,7 @@ const getMachines = (req, res) => {
             SELECT COUNT(*) as total_maquinas
             FROM maquinas WHERE activo = 1
         `).get();
-        
+
         // Machines by status
         const porEstado = db.prepare(`
             SELECT estado, COUNT(*) as cantidad
@@ -460,7 +462,7 @@ const getMachines = (req, res) => {
             WHERE activo = 1
             GROUP BY estado
         `).all();
-        
+
         // Needing maintenance
         const { necesitan_mantenimiento } = db.prepare(`
             SELECT COUNT(*) as necesitan_mantenimiento
@@ -469,7 +471,7 @@ const getMachines = (req, res) => {
             AND proximo_mantenimiento IS NOT NULL
             AND proximo_mantenimiento <= date('now', '+7 days')
         `).get();
-        
+
         // Machines by category
         const porCategoria = db.prepare(`
             SELECT categoria, COUNT(*) as cantidad
@@ -478,21 +480,21 @@ const getMachines = (req, res) => {
             GROUP BY categoria
             ORDER BY cantidad DESC
         `).all();
-        
+
         // Maintenance this month
         const { mantenimientos_mes } = db.prepare(`
             SELECT COUNT(*) as mantenimientos_mes
             FROM mantenimientos
             WHERE strftime('%Y-%m', fecha) = strftime('%Y-%m', 'now')
         `).get();
-        
+
         // Total maintenance cost this year
         const { costo_mantenimiento_anio } = db.prepare(`
             SELECT COALESCE(SUM(costo), 0) as costo_mantenimiento_anio
             FROM mantenimientos
             WHERE strftime('%Y', fecha) = strftime('%Y', 'now')
         `).get();
-        
+
         res.json({
             total_maquinas,
             por_estado: porEstado,
@@ -512,64 +514,80 @@ const getMachines = (req, res) => {
  */
 const getComparative = (req, res) => {
     try {
-        const { periodo = 'mes' } = req.query; // 'dia', 'semana', 'mes'
-        
+        const { periodo = 'mes', fecha_inicio, fecha_fin } = req.query;
+
         let currentFilter, previousFilter;
-        
-        switch (periodo) {
-            case 'dia':
-                currentFilter = "date(fecha_hora) = date('now')";
-                previousFilter = "date(fecha_hora) = date('now', '-1 day')";
-                break;
-            case 'semana':
-                currentFilter = "date(fecha_hora) >= date('now', '-7 days')";
-                previousFilter = "date(fecha_hora) >= date('now', '-14 days') AND date(fecha_hora) < date('now', '-7 days')";
-                break;
-            default: // mes
-                currentFilter = "strftime('%Y-%m', fecha_hora) = strftime('%Y-%m', 'now')";
-                previousFilter = "strftime('%Y-%m', fecha_hora) = strftime('%Y-%m', 'now', '-1 month')";
+
+        if (fecha_inicio && fecha_fin) {
+            // Custom date range: compare selected range vs same-length preceding range
+            currentFilter = `date(fecha_hora) BETWEEN '${fecha_inicio}' AND '${fecha_fin}'`;
+            // Calculate the length of the period in days to offset the previous period
+            const start = new Date(fecha_inicio);
+            const end = new Date(fecha_fin);
+            const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+            const prevEnd = new Date(start);
+            prevEnd.setDate(prevEnd.getDate() - 1);
+            const prevStart = new Date(prevEnd);
+            prevStart.setDate(prevStart.getDate() - diffDays + 1);
+            const prevStartStr = prevStart.toISOString().split('T')[0];
+            const prevEndStr = prevEnd.toISOString().split('T')[0];
+            previousFilter = `date(fecha_hora) BETWEEN '${prevStartStr}' AND '${prevEndStr}'`;
+        } else {
+            switch (periodo) {
+                case 'dia':
+                    currentFilter = "date(fecha_hora) = date('now')";
+                    previousFilter = "date(fecha_hora) = date('now', '-1 day')";
+                    break;
+                case 'semana':
+                    currentFilter = "date(fecha_hora) >= date('now', '-7 days')";
+                    previousFilter = "date(fecha_hora) >= date('now', '-14 days') AND date(fecha_hora) < date('now', '-7 days')";
+                    break;
+                default: // mes
+                    currentFilter = "strftime('%Y-%m', fecha_hora) = strftime('%Y-%m', 'now')";
+                    previousFilter = "strftime('%Y-%m', fecha_hora) = strftime('%Y-%m', 'now', '-1 month')";
+            }
         }
-        
+
         // Revenue comparison
         const currentRevenue = db.prepare(`
             SELECT COALESCE(SUM(monto), 0) as total FROM pagos WHERE ${currentFilter}
         `).get();
-        
+
         const previousRevenue = db.prepare(`
             SELECT COALESCE(SUM(monto), 0) as total FROM pagos WHERE ${previousFilter}
         `).get();
-        
+
         // Attendance comparison
         const currentAttendance = db.prepare(`
             SELECT COUNT(*) as total FROM asistencias WHERE ${currentFilter}
         `).get();
-        
+
         const previousAttendance = db.prepare(`
             SELECT COUNT(*) as total FROM asistencias WHERE ${previousFilter}
         `).get();
-        
+
         // New clients comparison
         const currentClients = db.prepare(`
-            SELECT COUNT(*) as total FROM clientes WHERE ${currentFilter.replace('fecha_hora', 'fecha_registro')}
+            SELECT COUNT(*) as total FROM clientes WHERE ${currentFilter.replace(/fecha_hora/g, 'fecha_registro')}
         `).get();
-        
+
         const previousClients = db.prepare(`
-            SELECT COUNT(*) as total FROM clientes WHERE ${previousFilter.replace('fecha_hora', 'fecha_registro')}
+            SELECT COUNT(*) as total FROM clientes WHERE ${previousFilter.replace(/fecha_hora/g, 'fecha_registro')}
         `).get();
-        
+
         // Calculate percentages
-        const revenueChange = previousRevenue.total > 0 
+        const revenueChange = previousRevenue.total > 0
             ? ((currentRevenue.total - previousRevenue.total) / previousRevenue.total * 100).toFixed(2)
             : 0;
-        
+
         const attendanceChange = previousAttendance.total > 0
             ? ((currentAttendance.total - previousAttendance.total) / previousAttendance.total * 100).toFixed(2)
             : 0;
-        
+
         const clientsChange = previousClients.total > 0
             ? ((currentClients.total - previousClients.total) / previousClients.total * 100).toFixed(2)
             : 0;
-        
+
         res.json({
             periodo,
             ingresos: {
@@ -594,6 +612,187 @@ const getComparative = (req, res) => {
     }
 };
 
+
+/**
+ * Get recent activity feed (last 20 events)
+ */
+const getRecentActivity = (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit) || 20;
+
+        // Recent check-ins
+        const checkIns = db.prepare(`
+            SELECT
+                'checkin' as tipo,
+                a.fecha_hora,
+                c.nombre || ' ' || c.apellido as descripcion,
+                c.id as referencia_id
+            FROM asistencias a
+            JOIN clientes c ON a.cliente_id = c.id
+            ORDER BY a.fecha_hora DESC
+            LIMIT ?
+        `).all(limit);
+
+        // Recent membership payments
+        const membresiaPayments = db.prepare(`
+            SELECT
+                'membresia' as tipo,
+                p.fecha_hora,
+                c.nombre || ' ' || c.apellido || ' - ' || p.concepto as descripcion,
+                p.monto,
+                c.id as referencia_id
+            FROM pagos p
+            JOIN clientes c ON p.cliente_id = c.id
+            WHERE p.tipo = 'membresia'
+            ORDER BY p.fecha_hora DESC
+            LIMIT ?
+        `).all(limit);
+
+        // Recent store sales
+        const ventas = db.prepare(`
+            SELECT
+                'venta' as tipo,
+                v.fecha_hora,
+                'Venta #' || v.id || ' - ' || COALESCE(u.nombre, 'Sistema') as descripcion,
+                v.total as monto,
+                v.id as referencia_id
+            FROM ventas v
+            LEFT JOIN usuarios u ON v.usuario_id = u.id
+            ORDER BY v.fecha_hora DESC
+            LIMIT ?
+        `).all(limit);
+
+        // Merge, sort by date desc, take top N
+        const all = [...checkIns, ...membresiaPayments, ...ventas]
+            .sort((a, b) => new Date(b.fecha_hora) - new Date(a.fecha_hora))
+            .slice(0, limit);
+
+        res.json(all);
+    } catch (error) {
+        console.error('Get recent activity error:', error);
+        res.status(500).json({ error: 'Error getting recent activity' });
+    }
+};
+
+/**
+ * Get top selling products for a period
+ */
+const getTopProducts = (req, res) => {
+    try {
+        const { fecha_inicio, fecha_fin } = req.query;
+
+        let dateFilter = '';
+        const params = [];
+
+        if (fecha_inicio && fecha_fin) {
+            dateFilter = 'AND date(v.fecha_hora) BETWEEN ? AND ?';
+            params.push(fecha_inicio, fecha_fin);
+        } else {
+            dateFilter = "AND strftime('%Y-%m', v.fecha_hora) = strftime('%Y-%m', 'now')";
+        }
+
+        const topProducts = db.prepare(`
+            SELECT 
+                p.nombre,
+                SUM(vd.cantidad) as unidades_vendidas,
+                SUM(vd.subtotal) as ingresos_total
+            FROM ventas_detalle vd
+            JOIN productos p ON vd.producto_id = p.id
+            JOIN ventas v ON vd.venta_id = v.id
+            WHERE 1=1 ${dateFilter}
+            GROUP BY vd.producto_id
+            ORDER BY unidades_vendidas DESC
+            LIMIT 10
+        `).all(...params);
+
+        res.json({ productos: topProducts });
+    } catch (error) {
+        console.error('Get top products error:', error);
+        res.status(500).json({ error: 'Error getting top products' });
+    }
+};
+
+/**
+ * Get client statistics for a period
+ */
+const getClientStats = (req, res) => {
+    try {
+        const { fecha_inicio, fecha_fin } = req.query;
+
+        let monthFilter;
+        const params = [];
+
+        if (fecha_inicio && fecha_fin) {
+            monthFilter = "date(fecha_registro) BETWEEN ? AND ?";
+            params.push(fecha_inicio, fecha_fin);
+        } else {
+            monthFilter = "strftime('%Y-%m', fecha_registro) = strftime('%Y-%m', 'now')";
+        }
+
+        // Total clients with active (non-expired) memberships
+        const { total_activos } = db.prepare(`
+            SELECT COUNT(DISTINCT cm.cliente_id) as total_activos
+            FROM clientes_membresias cm
+            JOIN clientes c ON cm.cliente_id = c.id
+            WHERE cm.activo = 1
+            AND cm.fecha_vencimiento >= date('now')
+            AND c.activo = 1
+        `).get();
+
+        // New clients this month
+        const { nuevos } = db.prepare(`
+            SELECT COUNT(*) as nuevos FROM clientes WHERE ${monthFilter}
+        `).get(...params);
+
+        // Renewals: memberships CREATED in this period for clients who already had
+        // a prior membership (i.e. this is not their first membership ever).
+        // Uses fecha_creacion (when purchased) instead of fecha_inicio (when it begins)
+        // so renewals that start in a future date still count in the current period.
+        const { renovaciones } = db.prepare(`
+            SELECT COUNT(*) as renovaciones
+            FROM clientes_membresias cm
+            WHERE ${fecha_inicio && fecha_fin ? "date(cm.fecha_creacion) BETWEEN ? AND ?" : "strftime('%Y-%m', cm.fecha_creacion) = strftime('%Y-%m', 'now')"}
+            AND EXISTS (
+                SELECT 1 FROM clientes_membresias cm2
+                WHERE cm2.cliente_id = cm.cliente_id
+                AND cm2.id != cm.id
+                AND cm2.fecha_creacion < cm.fecha_creacion
+            )
+        `).get(...(fecha_inicio && fecha_fin ? [fecha_inicio, fecha_fin] : []));
+
+        // Cancellations (memberships that expired this month and were not renewed)
+        const { cancelaciones } = db.prepare(`
+            SELECT COUNT(*) as cancelaciones
+            FROM clientes_membresias cm
+            WHERE ${fecha_inicio && fecha_fin ? "cm.fecha_vencimiento BETWEEN ? AND ?" : "strftime('%Y-%m', cm.fecha_vencimiento) = strftime('%Y-%m', 'now')"}
+            AND cm.fecha_vencimiento < date('now')
+            AND NOT EXISTS (
+                SELECT 1 FROM clientes_membresias cm2
+                WHERE cm2.cliente_id = cm.cliente_id
+                AND cm2.id != cm.id
+                AND cm2.fecha_inicio >= cm.fecha_vencimiento
+            )
+        `).get(...(fecha_inicio && fecha_fin ? [fecha_inicio, fecha_fin] : []));
+
+        // Renewal rate
+        const totalEligible = renovaciones + cancelaciones;
+        const tasa_renovacion = totalEligible > 0
+            ? Math.round((renovaciones / totalEligible) * 100)
+            : 0;
+
+        res.json({
+            total_activos,
+            nuevos,
+            renovaciones,
+            cancelaciones,
+            tasa_renovacion
+        });
+    } catch (error) {
+        console.error('Get client stats error:', error);
+        res.status(500).json({ error: 'Error getting client statistics' });
+    }
+};
+
 module.exports = {
     getDashboard,
     getRevenue,
@@ -602,5 +801,8 @@ module.exports = {
     getMemberships,
     getProducts,
     getMachines,
-    getComparative
+    getComparative,
+    getRecentActivity,
+    getTopProducts,
+    getClientStats
 };

@@ -62,12 +62,12 @@ const UserForm = ({ user, onClose, onSuccess }) => {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden">
-                <div className="flex justify-between items-center p-4 border-b border-gray-200 bg-gray-50">
-                    <h3 className="font-semibold text-lg text-gray-800">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden">
+                <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 dark:bg-gray-900">
+                    <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-200 dark:text-gray-200">
                         {user ? 'Editar Usuario' : 'Nuevo Usuario'}
                     </h3>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+                    <button onClick={onClose} className="text-gray-500 dark:text-gray-400 hover:text-gray-700">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -80,7 +80,7 @@ const UserForm = ({ user, onClose, onSuccess }) => {
                     )}
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre Completo</label>
                         <div className="relative">
                             <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                             <input
@@ -89,14 +89,14 @@ const UserForm = ({ user, onClose, onSuccess }) => {
                                 required
                                 value={formData.nombre}
                                 onChange={handleChange}
-                                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                                className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                                 placeholder="Juan Pérez"
                             />
                         </div>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Usuario</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Usuario</label>
                         <div className="relative">
                             <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                             <input
@@ -105,14 +105,14 @@ const UserForm = ({ user, onClose, onSuccess }) => {
                                 required
                                 value={formData.username}
                                 onChange={handleChange}
-                                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                                className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                                 placeholder="juanperez"
                             />
                         </div>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Email (Opcional)</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email (Opcional)</label>
                         <div className="relative">
                             <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                             <input
@@ -120,21 +120,21 @@ const UserForm = ({ user, onClose, onSuccess }) => {
                                 name="email"
                                 value={formData.email}
                                 onChange={handleChange}
-                                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                                className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                                 placeholder="juan@ejemplo.com"
                             />
                         </div>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Rol</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rol</label>
                         <div className="relative">
                             <Shield className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                             <select
                                 name="rol"
                                 value={formData.rol}
                                 onChange={handleChange}
-                                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 appearance-none"
+                                className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-primary-500 focus:border-primary-500 appearance-none"
                             >
                                 <option value="recepcion">Recepción</option>
                                 <option value="cajero">Cajero</option>
@@ -144,7 +144,7 @@ const UserForm = ({ user, onClose, onSuccess }) => {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             {user ? 'Nueva Contraseña (dejar en blanco para mantener)' : 'Contraseña'}
                         </label>
                         <div className="relative">
@@ -156,11 +156,11 @@ const UserForm = ({ user, onClose, onSuccess }) => {
                                 minLength={6}
                                 value={formData.password}
                                 onChange={handleChange}
-                                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                                className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                                 placeholder="••••••"
                             />
                         </div>
-                        <p className="text-xs text-gray-500 mt-1">Mínimo 6 caracteres</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Mínimo 6 caracteres</p>
                     </div>
 
                     {user && (
@@ -171,17 +171,17 @@ const UserForm = ({ user, onClose, onSuccess }) => {
                                 name="activo"
                                 checked={formData.activo === 1}
                                 onChange={handleChange}
-                                className="w-4 h-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                                className="w-4 h-4 text-primary-600 dark:text-primary-400 focus:ring-primary-500 border-gray-300 dark:border-gray-600 rounded"
                             />
-                            <label htmlFor="activo" className="text-sm text-gray-700 font-medium">Usuario Activo</label>
+                            <label htmlFor="activo" className="text-sm text-gray-700 dark:text-gray-300 font-medium">Usuario Activo</label>
                         </div>
                     )}
 
-                    <div className="flex gap-3 pt-4 border-t border-gray-100 mt-6">
+                    <div className="flex gap-3 pt-4 border-t border-gray-100 dark:border-gray-700 mt-6">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 flex-1"
+                            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 flex-1"
                         >
                             Cancelar
                         </button>

@@ -14,7 +14,8 @@ import {
   Package,
   AlertTriangle,
   User,
-  Crown
+  Crown,
+  Landmark
 } from 'lucide-react'
 import { usePermissions } from '../../hooks/usePermissions'
 
@@ -34,6 +35,7 @@ const Sidebar = ({ isOpen, onToggle }) => {
     { path: '/membresias/asignaciones', icon: Crown, label: 'Membresías', permission: PERMISSIONS.CAN_VIEW_CLIENTS },
     { path: '/membresias/vencimientos', icon: AlertCircle, label: 'Vencimientos', permission: PERMISSIONS.CAN_RENEW_MEMBERSHIP },
     { path: '/pagos', icon: DollarSign, label: 'Pagos', permission: PERMISSIONS.CAN_VIEW_FINANCIALS },
+    { path: '/caja', icon: Landmark, label: 'Caja', permission: PERMISSIONS.CAN_VIEW_FINANCIALS },
     { path: '/tienda/punto-venta', icon: ShoppingCart, label: 'Punto de Venta', permission: PERMISSIONS.CAN_POS },
     { path: '/tienda/productos', icon: Package, label: 'Productos', permission: PERMISSIONS.CAN_MANAGE_INVENTORY },
     { path: '/tienda/alertas', icon: AlertTriangle, label: 'Alertas Stock', permission: PERMISSIONS.CAN_MANAGE_INVENTORY },
@@ -52,16 +54,16 @@ const Sidebar = ({ isOpen, onToggle }) => {
       {/* Sidebar */}
       <aside
         className={`
-          bg-white border-r border-gray-200 flex flex-col transition-all duration-300
+          bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col transition-all duration-300
           ${isOpen ? 'w-64' : 'w-20'}
         `}
       >
         {/* Logo */}
-        <div className="h-16 flex items-center justify-center border-b border-gray-200 px-4">
+        <div className="h-16 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
           <div className="flex items-center gap-2">
             <Dumbbell className="w-8 h-8 text-primary-600" />
             {isOpen && (
-              <span className="font-bold text-xl text-gray-900">GymPro</span>
+              <span className="font-bold text-xl text-gray-900 dark:text-white">GymPro</span>
             )}
           </div>
         </div>
@@ -74,8 +76,8 @@ const Sidebar = ({ isOpen, onToggle }) => {
               to={item.path}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-3 rounded-lg transition-colors ${isActive
-                  ? 'bg-primary-50 text-primary-700'
-                  : 'text-gray-700 hover:bg-gray-100'
+                  ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`
               }
             >
@@ -88,10 +90,10 @@ const Sidebar = ({ isOpen, onToggle }) => {
         </nav>
 
         {/* Collapse toggle button */}
-        <div className="p-3 border-t border-gray-200">
+        <div className="p-3 border-t border-gray-200 dark:border-gray-700">
           <button
             onClick={onToggle}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
             aria-label={isOpen ? 'Contraer sidebar' : 'Expandir sidebar'}
           >
             <span className={`transform transition-transform ${isOpen ? 'rotate-180' : ''}`}>

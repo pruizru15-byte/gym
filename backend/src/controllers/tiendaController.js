@@ -129,17 +129,17 @@ const create = (req, res) => {
             stock_actual,
             stock_minimo,
             fecha_vencimiento,
-            imagen,
             proveedor
         } = req.body;
+
+        let imagen = req.body.imagen;
+        if (req.file) {
+            imagen = `/media/productos/${req.file.filename}`;
+        }
 
         // Validation
         if (!codigo || !nombre || !precio_venta) {
             return res.status(400).json({ error: 'Code, name and sale price are required' });
-        }
-
-        if (precio_venta <= 0) {
-            return res.status(400).json({ error: 'Sale price must be greater than 0' });
         }
 
         // Check if code already exists
@@ -148,16 +148,39 @@ const create = (req, res) => {
             return res.status(400).json({ error: 'Product code already exists' });
         }
 
+        // Convert string representations to numbers due to multipart/form-data
+        const numPrecioVenta = parseFloat(precio_venta);
+        const numPrecioCosto = precio_costo ? parseFloat(precio_costo) : null;
+        const numStockActual = stock_actual ? parseInt(stock_actual, 10) : 0;
+        const numStockMinimo = stock_minimo ? parseInt(stock_minimo, 10) : 5;
+
+        if (isNaN(numPrecioVenta) || numPrecioVenta <= 0) {
+            return res.status(400).json({ error: 'Sale price must be a valid number greater than 0' });
+        }
+
+        const params = [
+            codigo,
+            nombre,
+            descripcion || null,
+            categoria || null,
+            numPrecioVenta,
+            numPrecioCosto,
+            numStockActual,
+            numStockMinimo,
+            fecha_vencimiento || null,
+            imagen || null,
+            proveedor || null
+        ];
+
+        console.log('SQL Params for Create:', params);
+        console.log('Params length:', params.length);
+
         const result = db.prepare(`
             INSERT INTO productos (
                 codigo, nombre, descripcion, categoria, precio_venta, precio_costo,
                 stock_actual, stock_minimo, fecha_vencimiento, imagen, proveedor
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(
-            codigo, nombre, descripcion || null, categoria || null,
-            precio_venta, precio_costo || null, stock_actual || 0,
-            stock_minimo || 5, fecha_vencimiento || null, imagen || null, proveedor || null
-        );
+        `).run(...params);
 
         const newProductId = result.lastInsertRowid;
 
@@ -187,14 +210,28 @@ const update = (req, res) => {
             stock_actual,
             stock_minimo,
             fecha_vencimiento,
-            imagen,
             proveedor,
             activo
         } = req.body;
 
+        console.log('Update Product - req.body:', req.body);
+        console.log('Update Product - req.file:', req.file);
+
+        let imagen = req.body.imagen;
+        if (req.file) {
+            imagen = `/media/productos/${req.file.filename}`;
+        } else if (req.body.eliminar_imagen === 'true') {
+            imagen = null;
+        }
+
         const producto = db.prepare('SELECT * FROM productos WHERE id = ?').get(id);
         if (!producto) {
             return res.status(404).json({ error: 'Product not found' });
+        }
+
+        // If no new image and no request to delete, keep the existing one
+        if (imagen === undefined) {
+            imagen = producto.imagen;
         }
 
         // Validation
@@ -202,9 +239,34 @@ const update = (req, res) => {
             return res.status(400).json({ error: 'Name and sale price are required' });
         }
 
-        if (precio_venta <= 0) {
-            return res.status(400).json({ error: 'Sale price must be greater than 0' });
+        // Convert types due to multipart/form-data payload behavior
+        const numPrecioVenta = parseFloat(precio_venta);
+        const numPrecioCosto = precio_costo ? parseFloat(precio_costo) : null;
+        const numStockActual = stock_actual !== undefined ? parseInt(stock_actual, 10) : producto.stock_actual;
+        const numStockMinimo = stock_minimo !== undefined ? parseInt(stock_minimo, 10) : producto.stock_minimo;
+        const finalActivo = activo !== undefined ? parseInt(activo, 10) : producto.activo;
+
+        if (isNaN(numPrecioVenta) || numPrecioVenta <= 0) {
+            return res.status(400).json({ error: 'Sale price must be a valid number greater than 0' });
         }
+
+        const params = [
+            nombre,
+            descripcion || null,
+            categoria || null,
+            numPrecioVenta,
+            numPrecioCosto,
+            numStockActual,
+            numStockMinimo,
+            fecha_vencimiento || null,
+            imagen,
+            proveedor || null,
+            finalActivo,
+            id
+        ];
+
+        console.log('SQL Params for Update:', params);
+        console.log('Params length:', params.length);
 
         db.prepare(`
             UPDATE productos SET
@@ -220,14 +282,7 @@ const update = (req, res) => {
                 proveedor = ?,
                 activo = ?
             WHERE id = ?
-        `).run(
-            nombre, descripcion || null, categoria || null,
-            precio_venta, precio_costo || null,
-            stock_actual !== undefined ? stock_actual : producto.stock_actual,
-            stock_minimo !== undefined ? stock_minimo : producto.stock_minimo,
-            fecha_vencimiento || null, imagen || null, proveedor || null,
-            activo !== undefined ? activo : producto.activo, id
-        );
+        `).run(...params);
 
         // Log action
         logAction(req.user.id, ACTION_TYPES.UPDATE, ENTITY_TYPES.PRODUCTO, id, {
@@ -325,11 +380,12 @@ const updateStock = (req, res) => {
  */
 const getLowStock = (req, res) => {
     try {
+        const { threshold = 5 } = req.query;
         const productos = db.prepare(`
             SELECT * FROM productos
-            WHERE activo = 1 AND stock_actual <= stock_minimo
+            WHERE activo = 1 AND stock_actual <= ?
             ORDER BY stock_actual ASC
-        `).all();
+        `).all(parseInt(threshold));
 
         res.json(productos);
     } catch (error) {
@@ -339,22 +395,85 @@ const getLowStock = (req, res) => {
 };
 
 /**
+ * Get products expiring soon (within 60 days)
+ */
+const getExpiringSoon = (req, res) => {
+    try {
+        const { days = 60 } = req.query;
+        // Calculamos la fecha límite en JS y la pasamos como string ISO
+        const limitDate = new Date();
+        limitDate.setDate(limitDate.getDate() + parseInt(days));
+        const limitStr = limitDate.toISOString().split('T')[0]; // 'YYYY-MM-DD'
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        const productos = db.prepare(`
+            SELECT * FROM productos
+            WHERE activo = 1
+              AND fecha_vencimiento IS NOT NULL
+              AND fecha_vencimiento != ''
+              AND fecha_vencimiento <= ?
+              AND fecha_vencimiento >= ?
+            ORDER BY fecha_vencimiento ASC
+        `).all(limitStr, todayStr);
+
+        res.json(productos);
+    } catch (error) {
+        console.error('Get expiring soon error:', error);
+        res.status(500).json({ error: 'Error getting expiring products' });
+    }
+};
+
+/**
  * Get product categories
  */
 const getCategories = (req, res) => {
     try {
         const categorias = db.prepare(`
-            SELECT DISTINCT categoria, COUNT(*) as total
-            FROM productos
-            WHERE categoria IS NOT NULL AND activo = 1
-            GROUP BY categoria
-            ORDER BY categoria ASC
+            SELECT id, nombre, descripcion, activa
+            FROM tienda_categorias
+            WHERE activa = 1
+            ORDER BY nombre ASC
         `).all();
 
         res.json(categorias);
     } catch (error) {
         console.error('Get categories error:', error);
         res.status(500).json({ error: 'Error getting categories' });
+    }
+};
+
+/**
+ * Create product category
+ */
+const createCategory = (req, res) => {
+    try {
+        const { nombre, descripcion } = req.body;
+
+        if (!nombre) {
+            return res.status(400).json({ error: 'Name is required' });
+        }
+
+        const existing = db.prepare('SELECT id FROM tienda_categorias WHERE LOWER(nombre) = LOWER(?)').get(nombre);
+        if (existing) {
+            return res.status(400).json({ error: 'Category already exists' });
+        }
+
+        const result = db.prepare(`
+            INSERT INTO tienda_categorias (nombre, descripcion)
+            VALUES (?, ?)
+        `).run(nombre, descripcion || '');
+
+        const nuevaCategoria = db.prepare('SELECT * FROM tienda_categorias WHERE id = ?').get(result.lastInsertRowid);
+
+        // Log action (optional)
+        logAction(req.user.id, ACTION_TYPES.CREATE, ENTITY_TYPES.CONFIGURACION, result.lastInsertRowid, {
+            action: 'create_category', nombre
+        });
+
+        res.status(201).json(nuevaCategoria);
+    } catch (error) {
+        console.error('Create category error:', error);
+        res.status(500).json({ error: 'Error creating category' });
     }
 };
 
@@ -367,5 +486,7 @@ module.exports = {
     remove,
     updateStock,
     getLowStock,
-    getCategories
+    getExpiringSoon,
+    getCategories,
+    createCategory
 };

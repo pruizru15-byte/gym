@@ -52,8 +52,8 @@ const AuditLog = () => {
             case 'UPDATE': return 'bg-blue-100 text-blue-700'
             case 'DELETE': return 'bg-red-100 text-red-700'
             case 'LOGIN': return 'bg-purple-100 text-purple-700'
-            case 'LOGOUT': return 'bg-gray-100 text-gray-700'
-            default: return 'bg-gray-100 text-gray-700'
+            case 'LOGOUT': return 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+            default: return 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
         }
     }
 
@@ -61,20 +61,20 @@ const AuditLog = () => {
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Registro de Actividad</h1>
-                    <p className="text-gray-600 mt-1">Monitorea los cambios y acciones en el sistema</p>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white dark:text-white">Registro de Actividad</h1>
+                    <p className="text-gray-600 dark:text-gray-400 mt-1">Monitorea los cambios y acciones en el sistema</p>
                 </div>
             </div>
 
             {/* Filters */}
-            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Acción</label>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Acción</label>
                     <select
                         name="action"
                         value={filters.action}
                         onChange={handleFilterChange}
-                        className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
+                        className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
                     >
                         <option value="">Todas</option>
                         <option value="CREATE">Crear</option>
@@ -85,12 +85,12 @@ const AuditLog = () => {
                     </select>
                 </div>
                 <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Entidad</label>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Entidad</label>
                     <select
                         name="entityType"
                         value={filters.entityType}
                         onChange={handleFilterChange}
-                        className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
+                        className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
                     >
                         <option value="">Todas</option>
                         <option value="USUARIO">Usuario</option>
@@ -101,33 +101,33 @@ const AuditLog = () => {
                     </select>
                 </div>
                 <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Desde</label>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Desde</label>
                     <input
                         type="date"
                         name="startDate"
                         value={filters.startDate}
                         onChange={handleFilterChange}
-                        className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
+                        className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
                     />
                 </div>
                 <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Hasta</label>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Hasta</label>
                     <input
                         type="date"
                         name="endDate"
                         value={filters.endDate}
                         onChange={handleFilterChange}
-                        className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
+                        className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
                     />
                 </div>
             </div>
 
             {/* List */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="bg-gray-50 border-b border-gray-200 text-xs text-gray-500 uppercase">
+                            <tr className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 uppercase">
                                 <th className="px-6 py-3 font-semibold">Usuario</th>
                                 <th className="px-6 py-3 font-semibold">Acción</th>
                                 <th className="px-6 py-3 font-semibold">Entidad</th>
@@ -150,14 +150,14 @@ const AuditLog = () => {
                                 </tr>
                             ) : (
                                 logs.map((log) => (
-                                    <tr key={log.id} className="hover:bg-gray-50 transition">
+                                    <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-2">
-                                                <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 text-xs font-bold">
+                                                <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 dark:text-primary-400 text-xs font-bold">
                                                     {log.nombre ? log.nombre.substring(0, 2).toUpperCase() : '??'}
                                                 </div>
                                                 <div>
-                                                    <p className="text-sm font-medium text-gray-900">{log.nombre}</p>
+                                                    <p className="text-sm font-medium text-gray-900 dark:text-white dark:text-white">{log.nombre}</p>
                                                     <p className="text-xs text-gray-500">@{log.username}</p>
                                                 </div>
                                             </div>
@@ -170,12 +170,12 @@ const AuditLog = () => {
                                         <td className="px-6 py-4 text-sm text-gray-600">
                                             {log.entidad_tipo} #{log.entidad_id}
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">
+                                        <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400 max-w-xs truncate">
                                             {JSON.stringify(log.detalle)}
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-500">
                                             <div className="flex flex-col">
-                                                <span className="font-medium text-gray-900">
+                                                <span className="font-medium text-gray-900 dark:text-white dark:text-white">
                                                     {format(new Date(log.fecha_hora), 'dd MMM yyyy', { locale: es })}
                                                 </span>
                                                 <span className="text-xs">
@@ -191,7 +191,7 @@ const AuditLog = () => {
                 </div>
 
                 {/* Pagination */}
-                <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
                     <span className="text-sm text-gray-500">
                         Mostrando {logs.length} de {pagination.total} registros
                     </span>
@@ -199,14 +199,14 @@ const AuditLog = () => {
                         <button
                             onClick={() => setFilters(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
                             disabled={filters.page === 1}
-                            className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
+                            className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 disabled:opacity-50"
                         >
                             Anterior
                         </button>
                         <button
                             onClick={() => setFilters(prev => ({ ...prev, page: Math.min(pagination.pages, prev.page + 1) }))}
                             disabled={filters.page >= pagination.pages}
-                            className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
+                            className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 disabled:opacity-50"
                         >
                             Siguiente
                         </button>

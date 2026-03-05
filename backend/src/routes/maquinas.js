@@ -27,6 +27,9 @@ router.post('/', maquinasController.create);
 // Add maintenance record
 router.post('/:maquina_id/mantenimientos', maquinasController.addMaintenance);
 
+// Update machine status quickly
+router.patch('/:id/estado', maquinasController.updateStatus);
+
 // Update machine
 router.put('/:id', maquinasController.update);
 

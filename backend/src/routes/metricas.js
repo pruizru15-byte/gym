@@ -30,4 +30,13 @@ router.get('/maquinas', metricasController.getMachines);
 // Get comparative statistics
 router.get('/comparativa', metricasController.getComparative);
 
+// Get recent activity feed
+router.get('/actividad-reciente', metricasController.getRecentActivity);
+
+// Get top selling products
+router.get('/productos-top', metricasController.getTopProducts);
+
+// Get client statistics
+router.get('/clientes-stats', metricasController.getClientStats);
+
 module.exports = router;

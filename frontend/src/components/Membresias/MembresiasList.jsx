@@ -84,8 +84,8 @@ const MembresiasList = () => {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Planes de Membresía</h1>
-          <p className="text-gray-600 mt-1">Gestiona los planes y precios</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white dark:text-white">Planes de Membresía</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Gestiona los planes y precios</p>
         </div>
         {hasPermission(PERMISSIONS.CAN_CONFIGURE_SYSTEM) && (
           <Link
@@ -99,12 +99,12 @@ const MembresiasList = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex bg-gray-100 p-1 rounded-lg w-full max-w-md mx-auto mb-6">
+      <div className="flex bg-gray-100 dark:bg-gray-700 p-1 rounded-lg w-full max-w-md mx-auto mb-6">
         <button
           onClick={() => setActiveTab('activas')}
           className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition ${activeTab === 'activas'
-              ? 'bg-white shadow text-gray-900'
-              : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
+              ? 'bg-white dark:bg-gray-800 shadow text-gray-900 dark:text-white dark:text-white'
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-300 hover:bg-gray-200'
             }`}
         >
           Membresías Activas
@@ -112,8 +112,8 @@ const MembresiasList = () => {
         <button
           onClick={() => setActiveTab('inactivas')}
           className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition ${activeTab === 'inactivas'
-              ? 'bg-white shadow text-gray-900'
-              : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
+              ? 'bg-white dark:bg-gray-800 shadow text-gray-900 dark:text-white dark:text-white'
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-300 hover:bg-gray-200'
             }`}
         >
           Membresías Inactivas
@@ -126,10 +126,10 @@ const MembresiasList = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
         </div>
       ) : planes.filter(p => activeTab === 'activas' ? p.activo : !p.activo).length === 0 ? (
-        <div className="bg-white rounded-lg shadow-sm p-12 text-center">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-12 text-center">
           <AlertCircle className="mx-auto text-gray-400 mb-4" size={48} />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No hay planes registrados</h3>
-          <p className="text-gray-600 mb-6">Crea tu primer plan de membresía</p>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No hay planes registrados</h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">Crea tu primer plan de membresía</p>
           {hasPermission(PERMISSIONS.CAN_CONFIGURE_SYSTEM) && (
             <Link
               to="/membresias/nuevo"
@@ -150,7 +150,7 @@ const MembresiasList = () => {
                 className={`${colorScheme.bg} border-2 ${colorScheme.border} rounded-lg overflow-hidden hover:shadow-lg transition`}
               >
                 {/* Plan Header */}
-                <div className="p-6 border-b border-gray-200">
+                <div className="p-6 border-b border-gray-200 dark:border-gray-700 dark:border-gray-700">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <div className={`h-12 w-12 rounded-full ${colorScheme.bg} border-2 ${colorScheme.border} flex items-center justify-center transform group-hover:scale-110 transition-transform`}>
@@ -164,7 +164,7 @@ const MembresiasList = () => {
                               ACTIVO
                             </span>
                           ) : (
-                            <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-gray-100 text-gray-600 border border-gray-200">
+                            <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 dark:border-gray-700">
                               INACTIVO
                             </span>
                           )}
@@ -180,12 +180,12 @@ const MembresiasList = () => {
                   </div>
 
                   {/* Price */}
-                  <div className="mb-4 p-4 bg-white bg-opacity-60 rounded-lg border border-white/50 backdrop-blur-sm">
+                  <div className="mb-4 p-4 bg-white dark:bg-gray-800 bg-opacity-60 rounded-lg border border-white/50 backdrop-blur-sm">
                     <div className="flex items-baseline gap-1">
                       <span className={`text-3xl font-extrabold ${colorScheme.text}`}>
                         {formatCurrency(plan.precio)}
                       </span>
-                      <span className="text-gray-500 font-medium text-sm">
+                      <span className="text-gray-500 dark:text-gray-400 font-medium text-sm">
                         / {getDurationText(plan.duracion, plan.tipoDuracion, plan.duracion_dias)}
                       </span>
                     </div>
@@ -193,23 +193,23 @@ const MembresiasList = () => {
                 </div>
 
                 {/* Plan Details */}
-                <div className="p-6 space-y-4 bg-white flex-1 flex flex-col">
+                <div className="p-6 space-y-4 bg-white dark:bg-gray-800 flex-1 flex flex-col">
                   {plan.descripcion ? (
-                    <p className="text-sm text-gray-600 leading-relaxed line-clamp-3">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-3">
                       {plan.descripcion}
                     </p>
                   ) : (
                     <p className="text-sm text-gray-400 italic">Sin descripción</p>
                   )}
 
-                  <div className="mt-auto pt-4 border-t border-gray-100 grid grid-cols-2 gap-4">
+                  <div className="mt-auto pt-4 border-t border-gray-100 dark:border-gray-700 grid grid-cols-2 gap-4">
                     <div className="text-center">
                       <span className="block text-xs text-gray-400 uppercase font-bold tracking-wider">Duración</span>
                       <span className="font-semibold text-gray-700">
                         {getDurationText(plan.duracion, plan.tipoDuracion, plan.duracion_dias)}
                       </span>
                     </div>
-                    <div className="text-center border-l border-gray-100">
+                    <div className="text-center border-l border-gray-100 dark:border-gray-700 dark:border-gray-700">
                       <span className="block text-xs text-gray-400 uppercase font-bold tracking-wider">Costo Diario</span>
                       <span className="font-semibold text-gray-700">
                         {plan.duracion_dias
@@ -225,24 +225,24 @@ const MembresiasList = () => {
 
                 {/* Actions */}
                 {hasPermission(PERMISSIONS.CAN_CONFIGURE_SYSTEM) && (
-                  <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex gap-3">
+                  <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 flex gap-3">
                     <Link
                       to={`/membresias/editar/${plan.id}`}
-                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition text-sm font-semibold shadow-sm hover:shadow"
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 hover:text-gray-900 dark:text-white transition text-sm font-semibold shadow-sm hover:shadow"
                     >
                       <Edit size={16} />
                       Editar
                     </Link>
                     <button
                       onClick={() => handleToggleStatus(plan.id, plan.nombre, plan.activo)}
-                      className="flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition text-sm font-semibold shadow-sm hover:shadow"
+                      className="flex items-center justify-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 hover:text-gray-900 dark:text-white transition text-sm font-semibold shadow-sm hover:shadow"
                       title={plan.activo ? "Desactivar membresía" : "Activar membresía"}
                     >
                       <div
                         className={`relative inline-flex items-center h-5 w-9 rounded-full transition-colors ${plan.activo ? 'bg-primary-600' : 'bg-gray-300'}`}
                       >
                         <span
-                          className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${plan.activo ? 'translate-x-4' : 'translate-x-1'}`}
+                          className={`inline-block w-4 h-4 transform bg-white dark:bg-gray-800 rounded-full transition-transform ${plan.activo ? 'translate-x-4' : 'translate-x-1'}`}
                         />
                       </div>
                       {plan.activo ? 'Desactivar' : 'Activar'}
@@ -258,26 +258,26 @@ const MembresiasList = () => {
       {/* Summary Stats */}
       {!loading && planes.length > 0 && (
         <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
             <div className="flex items-center gap-3">
               <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
                 <CreditCard className="text-blue-600" size={24} />
               </div>
               <div>
                 <p className="text-sm text-gray-500">Planes Totales</p>
-                <p className="text-2xl font-bold text-gray-900">{planes.length}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white dark:text-white">{planes.length}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
             <div className="flex items-center gap-3">
               <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
                 <DollarSign className="text-green-600" size={24} />
               </div>
               <div>
                 <p className="text-sm text-gray-500">Precio Promedio</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-2xl font-bold text-gray-900 dark:text-white dark:text-white">
                   {formatCurrency(
                     planes.reduce((sum, plan) => sum + (plan.precio || 0), 0) / planes.length
                   )}
@@ -286,14 +286,14 @@ const MembresiasList = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
             <div className="flex items-center gap-3">
               <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center">
                 <Users className="text-purple-600" size={24} />
               </div>
               <div>
                 <p className="text-sm text-gray-500">Miembros Totales</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-2xl font-bold text-gray-900 dark:text-white dark:text-white">
                   {planes.reduce((sum, plan) => sum + (plan.miembrosActivos || 0), 0)}
                 </p>
               </div>

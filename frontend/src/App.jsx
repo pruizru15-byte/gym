@@ -39,6 +39,15 @@ import Settings from './components/Settings/Settings'
 // Pagos
 import HistorialPagos from './components/Pagos/HistorialPagos'
 
+// Caja
+import HistorialCaja from './components/Caja/HistorialCaja'
+
+// Asistencias
+import AsistenciasList from './components/Asistencias/AsistenciasList'
+
+// Reportes
+import Reportes from './components/Reportes/Reportes'
+
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth()
@@ -207,6 +216,25 @@ function App() {
                 <Route path="/pagos" element={
                   <PermissionGuard permission={PERMISSIONS.CAN_VIEW_FINANCIALS}>
                     <HistorialPagos />
+                  </PermissionGuard>
+                } />
+
+                {/* Caja Routes */}
+                <Route path="/caja" element={
+                  <PermissionGuard permission={PERMISSIONS.CAN_VIEW_FINANCIALS}>
+                    <HistorialCaja />
+                  </PermissionGuard>
+                } />
+
+                {/* Asistencias Routes */}
+                <Route path="/asistencias" element={
+                  <AsistenciasList />
+                } />
+
+                {/* Reportes Routes */}
+                <Route path="/reportes" element={
+                  <PermissionGuard permission={PERMISSIONS.CAN_VIEW_FINANCIALS}>
+                    <Reportes />
                   </PermissionGuard>
                 } />
 

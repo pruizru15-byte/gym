@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Download, Search, Filter, Printer, Calendar as CalendarIcon, DollarSign, CreditCard, Box as Cash, AlertTriangle, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import { useNotifications } from '../../hooks/useNotifications';
+import toast from 'react-hot-toast';
 import { paymentsAPI } from '../../services/api';
 import { formatCurrency, formatDate, formatTime } from '../../utils/formatters';
 
@@ -13,7 +13,7 @@ import PendientesList from './PendientesList';
 
 const HistorialPagos = () => {
     const { user } = useAuth();
-    const { success, error } = useNotifications();
+
     const location = useLocation();
     const navigate = useNavigate();
     const [pagos, setPagos] = useState([]);
@@ -60,7 +60,7 @@ const HistorialPagos = () => {
             setPagos(res.data.data.pagos);
             setResumenDia(res.data.data.resumenDia);
         } catch (err) {
-            error('Error al cargar el historial de pagos');
+            toast.error('Error al cargar el historial de pagos');
             setPagos([]);
             setResumenDia({ total: 0, efectivo: 0, tarjeta: 0, transferencia: 0 });
         } finally {
@@ -92,21 +92,19 @@ const HistorialPagos = () => {
             const res = await paymentsAPI.getReceipt(pago.id);
             setSelectedPago(res.data.data);
         } catch (err) {
-            error('Error al obtener el recibo');
+            toast.error('Error al obtener el recibo');
         }
     };
 
     const handleAbrirCaja = async (data) => {
         try {
             await paymentsAPI.abrirCaja(data);
-            success('Caja abierta exitosamente');
+            toast.success('Caja abierta exitosamente');
             setIsAbrirCajaOpen(false);
-
-            // Reload EVERYTHING
             await loadCajaState();
             await loadData();
         } catch (err) {
-            error(err.response?.data?.error || 'Error al abrir la caja');
+            toast.error(err.response?.data?.error || 'Error al abrir la caja');
         }
     };
 
@@ -115,8 +113,8 @@ const HistorialPagos = () => {
             {/* Header & Tabs */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Pagos y Caja</h1>
-                    <p className="text-sm text-gray-500 mt-1">Gestión de ingresos, recolección y deudas</p>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white dark:text-white">Pagos y Caja</h1>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Gestión de ingresos, recolección y deudas</p>
                 </div>
 
                 {/* Caja State Display */}
@@ -126,7 +124,7 @@ const HistorialPagos = () => {
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                 <CheckCircle className="w-3 h-3 mr-1" /> Caja Abierta
                             </span>
-                            <span className="text-xs text-gray-500 mt-1">
+                            <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                 Por: {cajaState.apertura?.cajero || 'Admin'}
                             </span>
                         </div>
@@ -172,14 +170,14 @@ const HistorialPagos = () => {
             )}
 
             {/* Navigation Tabs */}
-            <div className="border-b border-gray-200">
+            <div className="border-b border-gray-200 dark:border-gray-700 dark:border-gray-700">
                 <nav className="-mb-px flex space-x-8" aria-label="Tabs">
                     <button
                         onClick={() => setActiveTab('historial')}
                         className={`
                     ${activeTab === 'historial'
-                                ? 'border-primary-500 text-primary-600'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                ? 'border-primary-500 text-primary-600 dark:text-primary-400 dark:text-primary-400'
+                                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:border-gray-600 dark:border-gray-600'
                             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center
                   `}
                     >
@@ -190,8 +188,8 @@ const HistorialPagos = () => {
                         onClick={() => setActiveTab('pendientes')}
                         className={`
                     ${activeTab === 'pendientes'
-                                ? 'border-primary-500 text-primary-600'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                ? 'border-primary-500 text-primary-600 dark:text-primary-400 dark:text-primary-400'
+                                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:border-gray-600 dark:border-gray-600'
                             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center
                   `}
                     >
@@ -205,7 +203,7 @@ const HistorialPagos = () => {
             {activeTab === 'historial' && (
                 <div className="space-y-6">
                     {/* Filters */}
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-4 items-center justify-between">
+                    <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col md:flex-row gap-4 items-center justify-between">
                         <div className="flex flex-wrap gap-4 items-center">
                             <div className="flex items-center gap-2">
                                 <CalendarIcon className="w-5 h-5 text-gray-400" />
@@ -213,7 +211,7 @@ const HistorialPagos = () => {
                                     type="date"
                                     value={filters.fecha}
                                     onChange={(e) => setFilters(prev => ({ ...prev, fecha: e.target.value }))}
-                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                                    className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                                 />
                             </div>
                             <div className="flex items-center gap-2">
@@ -221,7 +219,7 @@ const HistorialPagos = () => {
                                 <select
                                     value={filters.tipo}
                                     onChange={(e) => setFilters(prev => ({ ...prev, tipo: e.target.value }))}
-                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 bg-white"
+                                    className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-800 dark:bg-gray-800"
                                 >
                                     <option value="all">Todos los Tipos</option>
                                     <option value="membresia">Membresías</option>
@@ -233,40 +231,40 @@ const HistorialPagos = () => {
 
                     {/* Resumen Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
+                        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border border-gray-100 dark:border-gray-700 dark:border-gray-700">
                             <h3 className="text-sm font-medium text-gray-500">Recaudado (Filtros)</h3>
-                            <p className="text-2xl font-bold text-gray-900 mt-1">{formatCurrency(ResumenDia?.total || 0)}</p>
+                            <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{formatCurrency(ResumenDia?.total || 0)}</p>
                         </div>
-                        <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 flex items-center gap-3">
+                        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border border-gray-100 dark:border-gray-700 flex items-center gap-3">
                             <div className="p-2 bg-green-100 rounded-lg text-green-600"><Cash className="w-6 h-6" /></div>
                             <div>
                                 <h3 className="text-sm font-medium text-gray-500">Efectivo</h3>
-                                <p className="text-xl font-bold text-gray-900">{formatCurrency(ResumenDia?.efectivo || 0)}</p>
+                                <p className="text-xl font-bold text-gray-900 dark:text-white dark:text-white">{formatCurrency(ResumenDia?.efectivo || 0)}</p>
                             </div>
                         </div>
-                        <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 flex items-center gap-3">
+                        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border border-gray-100 dark:border-gray-700 flex items-center gap-3">
                             <div className="p-2 bg-blue-100 rounded-lg text-blue-600"><CreditCard className="w-6 h-6" /></div>
                             <div>
                                 <h3 className="text-sm font-medium text-gray-500">Tarjeta</h3>
-                                <p className="text-xl font-bold text-gray-900">{formatCurrency(ResumenDia?.tarjeta || 0)}</p>
+                                <p className="text-xl font-bold text-gray-900 dark:text-white dark:text-white">{formatCurrency(ResumenDia?.tarjeta || 0)}</p>
                             </div>
                         </div>
-                        <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 flex items-center gap-3">
+                        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border border-gray-100 dark:border-gray-700 flex items-center gap-3">
                             <div className="p-2 bg-purple-100 rounded-lg text-purple-600">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18" /><path d="M3 10h18" /><path d="M5 6l7-3 7 3" /><path d="M4 10v11" /><path d="M20 10v11" /><path d="M8 14v3" /><path d="M12 14v3" /><path d="M16 14v3" /></svg>
                             </div>
                             <div>
                                 <h3 className="text-sm font-medium text-gray-500">Transferencia</h3>
-                                <p className="text-xl font-bold text-gray-900">{formatCurrency(ResumenDia?.transferencia || 0)}</p>
+                                <p className="text-xl font-bold text-gray-900 dark:text-white dark:text-white">{formatCurrency(ResumenDia?.transferencia || 0)}</p>
                             </div>
                         </div>
                     </div>
 
                     {/* Table */}
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm whitespace-nowrap">
-                                <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
+                                <thead className="bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-400 font-medium border-b border-gray-200 dark:border-gray-700 dark:border-gray-700">
                                     <tr>
                                         <th className="px-6 py-4">Fecha/Hora</th>
                                         <th className="px-6 py-4">Cliente</th>
@@ -292,14 +290,14 @@ const HistorialPagos = () => {
                                                 <div className="flex justify-center mb-3">
                                                     <DollarSign className="w-10 h-10 text-gray-300" />
                                                 </div>
-                                                <p className="text-lg font-medium text-gray-900">No hay pagos registrados</p>
+                                                <p className="text-lg font-medium text-gray-900 dark:text-white dark:text-white">No hay pagos registrados</p>
                                             </td>
                                         </tr>
                                     ) : (
                                         pagos.map((pago) => (
-                                            <tr key={pago.id} className="hover:bg-gray-50 transition-colors">
+                                            <tr key={pago.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition-colors">
                                                 <td className="px-6 py-3">
-                                                    <div className="font-medium text-gray-900">{formatDate(pago.fecha_hora)}</div>
+                                                    <div className="font-medium text-gray-900 dark:text-white dark:text-white">{formatDate(pago.fecha_hora)}</div>
                                                     <div className="text-xs text-gray-500">{formatTime(pago.fecha_hora)}</div>
                                                 </td>
                                                 <td className="px-6 py-3">
@@ -310,7 +308,7 @@ const HistorialPagos = () => {
                                                     )}
                                                 </td>
                                                 <td className="px-6 py-3 max-w-[200px] truncate" title={pago.concepto}>{pago.concepto}</td>
-                                                <td className="px-6 py-3 font-semibold text-gray-900">{formatCurrency(pago.monto)}</td>
+                                                <td className="px-6 py-3 font-semibold text-gray-900 dark:text-white dark:text-white">{formatCurrency(pago.monto)}</td>
                                                 <td className="px-6 py-3">
                                                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium 
                                 ${pago.metodo_pago === 'efectivo' ? 'bg-green-100 text-green-700' :
@@ -322,7 +320,7 @@ const HistorialPagos = () => {
                                                 <td className="px-6 py-3 text-center">
                                                     <button
                                                         onClick={() => handleVerRecibo(pago)}
-                                                        className="p-1.5 text-blue-600 hover:bg-blue-50 bg-white border border-blue-200 rounded-lg inline-flex items-center transition-colors shadow-sm"
+                                                        className="p-1.5 text-blue-600 hover:bg-blue-50 bg-white dark:bg-gray-800 border border-blue-200 rounded-lg inline-flex items-center transition-colors shadow-sm"
                                                         title="Ver Recibo"
                                                     >
                                                         <Printer className="w-4 h-4" />
@@ -350,27 +348,24 @@ const HistorialPagos = () => {
                 <ReciboPagoModal pago={selectedPago} onClose={() => setSelectedPago(null)} />
             )}
 
-            {isCorteCajaOpen && (
-                <CorteCajaModal
-                    resumenDia={ResumenDia}
-                    fecha={filters.fecha}
-                    onClose={() => setIsCorteCajaOpen(false)}
-                    onGenerar={async () => {
-                        setIsCorteCajaOpen(false);
-                        success('Corte de caja generado (caja cerrada).');
-                        await loadCajaState();
-                        await loadData();
-                    }}
-                />
-            )}
+            <CorteCajaModal
+                isOpen={isCorteCajaOpen}
+                resumenDia={ResumenDia}
+                fecha={filters.fecha}
+                onClose={() => setIsCorteCajaOpen(false)}
+                onGenerar={async () => {
+                    toast.success('Corte de caja generado (caja cerrada).');
+                    setIsCorteCajaOpen(false);
+                    await loadCajaState();
+                    await loadData();
+                }}
+            />
 
-            {isAbrirCajaOpen && (
-                <AbrirCajaModal
-                    isOpen={isAbrirCajaOpen}
-                    onClose={() => setIsAbrirCajaOpen(false)}
-                    onConfirm={handleAbrirCaja}
-                />
-            )}
+            <AbrirCajaModal
+                isOpen={isAbrirCajaOpen}
+                onClose={() => setIsAbrirCajaOpen(false)}
+                onConfirm={handleAbrirCaja}
+            />
         </div>
     );
 };

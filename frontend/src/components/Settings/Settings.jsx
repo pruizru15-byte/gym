@@ -1,74 +1,47 @@
-import { useState } from 'react';
 import { Routes, Route, NavLink, Navigate } from 'react-router-dom';
-import { Users, Database, Bell, Shield, Activity } from 'lucide-react';
+import { Users, Building2, Bell, Shield, Activity, Wifi, Palette } from 'lucide-react';
 import UsersManagement from './Users/Users';
 import AuditLog from './AuditLog';
+import GeneralSettings from './GeneralSettings';
+import NotificationsSettings from './NotificationsSettings';
+import BackupsSettings from './BackupsSettings';
+import AppearanceSettings from './AppearanceSettings';
+import NetworkSettings from './NetworkSettings';
+
+const navItems = [
+    { to: 'usuarios', icon: Users, label: 'Usuarios del Sistema' },
+    { to: 'general', icon: Building2, label: 'Datos del Gimnasio' },
+    { to: 'red', icon: Wifi, label: 'Configuración de Red' },
+    { to: 'notificaciones', icon: Bell, label: 'Notificaciones' },
+    { to: 'seguridad', icon: Shield, label: 'Seguridad y Backups' },
+    { to: 'apariencia', icon: Palette, label: 'Apariencia y Otros' },
+    { to: 'actividad', icon: Activity, label: 'Registro de Actividad' },
+];
 
 const Settings = () => {
     return (
-        <div className="flex bg-white rounded-xl shadow-sm border border-gray-200 min-h-[600px] overflow-hidden">
+        <div className="flex bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 min-h-[600px] overflow-hidden transition-colors duration-200">
             {/* Submenu Sidebar */}
-            <div className="w-64 bg-gray-50 border-r border-gray-200">
-                <div className="p-4 border-b border-gray-200">
-                    <h2 className="font-semibold text-gray-800">Configuración</h2>
-                    <p className="text-sm text-gray-500">Gestión del sistema</p>
+            <div className="w-64 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex-shrink-0">
+                <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h2 className="font-semibold text-gray-800 dark:text-white">Configuración</h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Gestión del sistema</p>
                 </div>
 
                 <nav className="p-2 space-y-1">
-                    <NavLink
-                        to="/configuracion/usuarios"
-                        className={({ isActive }) => `
-              flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors
-              ${isActive ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'}
-            `}
-                    >
-                        <Users className="w-4 h-4" />
-                        Usuarios del Sistema
-                    </NavLink>
-
-                    <NavLink
-                        to="/configuracion/general"
-                        className={({ isActive }) => `
-              flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors
-              ${isActive ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'}
-            `}
-                    >
-                        <Database className="w-4 h-4" />
-                        Datos del Gimnasio
-                    </NavLink>
-
-                    <NavLink
-                        to="/configuracion/notificaciones"
-                        className={({ isActive }) => `
-              flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors
-              ${isActive ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'}
-            `}
-                    >
-                        <Bell className="w-4 h-4" />
-                        Notificaciones
-                    </NavLink>
-
-                    <NavLink
-                        to="/configuracion/seguridad"
-                        className={({ isActive }) => `
-              flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors
-              ${isActive ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'}
-            `}
-                    >
-                        <Shield className="w-4 h-4" />
-                        Seguridad y Backups
-                    </NavLink>
-
-                    <NavLink
-                        to="/configuracion/actividad"
-                        className={({ isActive }) => `
-              flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors
-              ${isActive ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'}
-            `}
-                    >
-                        <Activity className="w-4 h-4" />
-                        Registro de Actividad
-                    </NavLink>
+                    {navItems.map(item => (
+                        <NavLink
+                            key={item.to}
+                            to={`/configuracion/${item.to}`}
+                            className={({ isActive }) => `
+                                flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors
+                                ${isActive ? 'bg-white dark:bg-gray-800 text-primary-600 dark:text-primary-400 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'}
+                            `}
+                        >
+                            <item.icon className="w-4 h-4" />
+                            {item.label}
+                        </NavLink>
+                    ))}
                 </nav>
             </div>
 
@@ -77,9 +50,11 @@ const Settings = () => {
                 <Routes>
                     <Route path="/" element={<Navigate to="usuarios" replace />} />
                     <Route path="usuarios" element={<UsersManagement />} />
-                    <Route path="general" element={<div className="p-8 text-center text-gray-500">Configuración General (Próximamente)</div>} />
-                    <Route path="notificaciones" element={<div className="p-8 text-center text-gray-500">Configuración de Notificaciones (Próximamente)</div>} />
-                    <Route path="seguridad" element={<div className="p-8 text-center text-gray-500">Seguridad y Backups (Próximamente)</div>} />
+                    <Route path="general" element={<GeneralSettings />} />
+                    <Route path="red" element={<NetworkSettings />} />
+                    <Route path="notificaciones" element={<NotificationsSettings />} />
+                    <Route path="seguridad" element={<BackupsSettings />} />
+                    <Route path="apariencia" element={<AppearanceSettings />} />
                     <Route path="actividad" element={<AuditLog />} />
                 </Routes>
             </div>

@@ -287,11 +287,11 @@ const remove = (req, res) => {
 const addMaintenance = (req, res) => {
     try {
         const { maquina_id } = req.params;
-        const { fecha, tipo, descripcion, costo, realizado_por } = req.body;
+        const { fecha, tipo, descripcion, costo, realizado_por, notas, nuevo_estado } = req.body;
 
         // Validation
-        if (!fecha || !tipo || !descripcion) {
-            return res.status(400).json({ error: 'Date, type and description are required' });
+        if (!tipo || !descripcion) {
+            return res.status(400).json({ error: 'Type and description are required' });
         }
 
         const maquina = db.prepare('SELECT * FROM maquinas WHERE id = ?').get(maquina_id);
@@ -299,30 +299,40 @@ const addMaintenance = (req, res) => {
             return res.status(404).json({ error: 'Machine not found' });
         }
 
+        const fechaMantenimiento = fecha || formatDate(new Date());
+
         // Insert maintenance record
         const result = db.prepare(`
             INSERT INTO mantenimientos (
                 maquina_id, fecha, tipo, descripcion, costo, realizado_por, usuario_registro_id
             ) VALUES (?, ?, ?, ?, ?, ?, ?)
         `).run(
-            maquina_id, fecha, tipo, descripcion, costo || null,
+            maquina_id, fechaMantenimiento, tipo, descripcion, costo || null,
             realizado_por || null, req.user.id
         );
 
         // Update machine's last maintenance and calculate next
-        const nextMaintenance = formatDate(addDays(new Date(fecha), maquina.frecuencia_mantenimiento_dias));
+        const nextMaintenance = formatDate(addDays(new Date(fechaMantenimiento), maquina.frecuencia_mantenimiento_dias));
+
+        // Optionally update machine state
+        const estadoFinal = nuevo_estado && ['disponible', 'mantenimiento', 'fuera_servicio'].includes(nuevo_estado)
+            ? nuevo_estado
+            : maquina.estado;
+
         db.prepare(`
             UPDATE maquinas SET
                 ultimo_mantenimiento = ?,
-                proximo_mantenimiento = ?
+                proximo_mantenimiento = ?,
+                estado = ?
             WHERE id = ?
-        `).run(fecha, nextMaintenance, maquina_id);
+        `).run(fechaMantenimiento, nextMaintenance, estadoFinal, maquina_id);
 
         // Log action
         logAction(req.user.id, ACTION_TYPES.UPDATE, ENTITY_TYPES.MAQUINA, maquina_id, {
             action: 'maintenance',
             tipo,
-            descripcion
+            descripcion,
+            nuevo_estado: nuevo_estado !== maquina.estado ? nuevo_estado : undefined
         });
 
         const mantenimiento = db.prepare(`
@@ -405,6 +415,44 @@ const getCategories = (req, res) => {
     }
 };
 
+/**
+ * Update machine status quickly
+ */
+const updateStatus = (req, res) => {
+    try {
+        const { id } = req.params;
+        const { estado, nota } = req.body;
+
+        const validStates = ['disponible', 'mantenimiento', 'fuera_servicio'];
+        if (!estado || !validStates.includes(estado)) {
+            return res.status(400).json({ error: 'Valid state is required (disponible, mantenimiento, fuera_servicio)' });
+        }
+
+        const maquina = db.prepare('SELECT * FROM maquinas WHERE id = ?').get(id);
+        if (!maquina) {
+            return res.status(404).json({ error: 'Machine not found' });
+        }
+
+        const previousState = maquina.estado;
+
+        db.prepare('UPDATE maquinas SET estado = ? WHERE id = ?').run(estado, id);
+
+        // Log action
+        logAction(req.user.id, ACTION_TYPES.UPDATE, ENTITY_TYPES.MAQUINA, id, {
+            action: 'status_change',
+            estado_anterior: previousState,
+            estado_nuevo: estado,
+            nota: nota || undefined
+        });
+
+        const updatedMaquina = db.prepare('SELECT * FROM maquinas WHERE id = ?').get(id);
+        res.json(updatedMaquina);
+    } catch (error) {
+        console.error('Update status error:', error);
+        res.status(500).json({ error: 'Error updating machine status' });
+    }
+};
+
 module.exports = {
     getAll,
     getById,
@@ -414,5 +462,6 @@ module.exports = {
     addMaintenance,
     getMaintenanceHistory,
     getNeedingMaintenance,
-    getCategories
+    getCategories,
+    updateStatus
 };

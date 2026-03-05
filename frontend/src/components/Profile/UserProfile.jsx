@@ -1,10 +1,16 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import api, { authAPI, usersAPI } from '../../services/api'
-import { User, Mail, Camera, Save, RefreshCw, Activity, Calendar, Clock } from 'lucide-react'
+import {
+    User, Mail, Camera, Save, RefreshCw, Activity,
+    Calendar, Clock, ChevronLeft, ChevronRight, Key, Shield
+} from 'lucide-react'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { getRelativeTime } from '../../utils/formatters'
+
+const PAGE_SIZE = 5
 
 const UserProfile = () => {
     const { user, updateUser } = useAuth()
@@ -18,6 +24,8 @@ const UserProfile = () => {
     })
     const [auditLogs, setAuditLogs] = useState([])
     const [loadingLogs, setLoadingLogs] = useState(false)
+    const [logPage, setLogPage] = useState(1)
+    const [activeTab, setActiveTab] = useState('info') // 'info' | 'password'
 
     useEffect(() => {
         if (user) {
@@ -34,9 +42,10 @@ const UserProfile = () => {
     const fetchUserLogs = async () => {
         if (!user) return
         setLoadingLogs(true)
+        setLogPage(1)
         try {
-            const response = await usersAPI.getAuditLogs({ userId: user.id, limit: 10 })
-            setAuditLogs(response.data.logs)
+            const response = await usersAPI.getAuditLogs({ userId: user.id, limit: 50 })
+            setAuditLogs(response.data.logs || [])
         } catch (error) {
             console.error('Error fetching logs:', error)
         } finally {
@@ -71,15 +80,9 @@ const UserProfile = () => {
         }
         setLoading(true)
         try {
-            await authAPI.changePassword(user.id, {
-                newPassword: formData.newPassword
-            })
+            await authAPI.changePassword(user.id, { newPassword: formData.newPassword })
             toast.success('Contraseña actualizada correctamente')
-            setFormData(prev => ({
-                ...prev,
-                newPassword: '',
-                confirmPassword: ''
-            }))
+            setFormData(prev => ({ ...prev, newPassword: '', confirmPassword: '' }))
         } catch (error) {
             toast.error(error.response?.data?.error || 'Error al cambiar contraseña')
         } finally {
@@ -90,206 +93,305 @@ const UserProfile = () => {
     const handlePhotoChange = async (e) => {
         const file = e.target.files[0]
         if (!file) return
-
-        const formData = new FormData()
-        formData.append('foto', file)
-        // Also send current data to avoid overwriting with nulls if backend requires it
-        // But backend handles COALESCE, so sending just the file might be enough depending on route
-        // The update route expects all fields, but COALESCE handles missing ones.
-        // However, standard fetch/axios put might send empty body if not careful.
-        // Best to send only the file in this specific call if the backend supports partial updates via PATCH or smart PUT.
-        // The current backend UPDATE query uses COALESCE(?, field), so undefined/null is ignored.
-        // But FormData fields are strings.
-
+        const fd = new FormData()
+        fd.append('foto', file)
         try {
-            const response = await api.put(`/usuarios/${user.id}`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
+            const response = await api.put(`/usuarios/${user.id}`, fd, {
+                headers: { 'Content-Type': 'multipart/form-data' }
             })
             updateUser(response.data)
             toast.success('Foto actualizada')
         } catch (error) {
-            console.error(error)
             toast.error('Error al subir foto')
         }
     }
 
-    return (
-        <div className="max-w-6xl mx-auto p-6 space-y-8">
-            <h1 className="text-3xl font-bold text-gray-800">Mi Perfil</h1>
+    /* ── Pagination ── */
+    const totalPages = Math.max(1, Math.ceil(auditLogs.length / PAGE_SIZE))
+    const logStart = (logPage - 1) * PAGE_SIZE
+    const pageItems = auditLogs.slice(logStart, logStart + PAGE_SIZE)
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Left Column: Photo & Personal Info */}
-                <div className="lg:col-span-1 space-y-6">
-                    {/* Photo Card */}
-                    <div className="bg-white rounded-xl shadow-lg p-6 flex flex-col items-center">
-                        <div className="relative group">
-                            <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-primary-100 mb-4">
+    return (
+        /* Full-height container — no page scroll */
+        <div className="h-full flex flex-col gap-4 overflow-hidden">
+
+            {/* ── Page title ── */}
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex-shrink-0">Mi Perfil</h1>
+
+            {/* ── Three-column grid that fills remaining height ── */}
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 overflow-hidden min-h-0">
+
+                {/* ─── LEFT: Avatar card ─── */}
+                <div className="flex flex-col gap-4 overflow-hidden">
+                    {/* Avatar */}
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex flex-col items-center">
+                        <div className="relative group mb-4">
+                            <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-primary-100 shadow-md">
                                 {user?.foto ? (
                                     <img
                                         src={user.foto}
-                                        alt="Profile"
+                                        alt="Foto de perfil"
                                         className="w-full h-full object-cover"
-                                        onError={(e) => {
-                                            e.target.onerror = null;
-                                            e.target.src = 'https://via.placeholder.com/150?text=Error';
-                                        }}
+                                        onError={e => { e.target.src = 'https://via.placeholder.com/150?text=?' }}
                                     />
                                 ) : (
-                                    <div className="w-full h-full bg-primary-50 flex items-center justify-center text-primary-300">
-                                        <User size={64} />
+                                    <div className="w-full h-full bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center">
+                                        <User size={52} className="text-primary-400" />
                                     </div>
                                 )}
                             </div>
-                            <label className="absolute bottom-4 right-0 bg-primary-600 p-2 rounded-full text-white cursor-pointer hover:bg-primary-700 transition shadow-md">
-                                <Camera size={16} />
+                            <label className="absolute bottom-0 right-0 bg-primary-600 p-2 rounded-full text-white cursor-pointer hover:bg-primary-700 transition shadow-lg">
+                                <Camera size={14} />
                                 <input type="file" className="hidden" accept="image/*" onChange={handlePhotoChange} />
                             </label>
                         </div>
-                        <h2 className="text-xl font-semibold text-gray-800">{user?.nombre}</h2>
-                        <span className="px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-medium mt-1 uppercase">
+                        <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 dark:text-gray-200">{user?.nombre}</h2>
+                        <span className="mt-1 px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-xs font-semibold uppercase tracking-wide">
                             {user?.rol}
                         </span>
-                        <p className="text-gray-500 text-sm mt-2">Miembro desde {user?.fecha_creacion ? format(new Date(user.fecha_creacion), 'MMM yyyy') : '-'}</p>
+                        <p className="text-gray-400 text-xs mt-2 flex items-center gap-1">
+                            <Calendar size={11} />
+                            Desde {user?.fecha_creacion
+                                ? format(new Date(user.fecha_creacion), 'MMM yyyy', { locale: es })
+                                : '-'}
+                        </p>
                     </div>
 
-                    {/* Change Password Card */}
-                    <div className="bg-white rounded-xl shadow-lg p-6">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                            <RefreshCw size={20} className="text-primary-600" />
-                            Cambiar Contraseña
-                        </h3>
-                        <form onSubmit={handleSubmitPassword} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Nueva Contraseña</label>
-                                <input
-                                    type="password"
-                                    name="newPassword"
-                                    value={formData.newPassword}
-                                    onChange={handleChange}
-                                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Confirmar Contraseña</label>
-                                <input
-                                    type="password"
-                                    name="confirmPassword"
-                                    value={formData.confirmPassword}
-                                    onChange={handleChange}
-                                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-                                />
-                            </div>
+                    {/* Tabs: Info / Password */}
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex-1 flex flex-col overflow-hidden">
+                        {/* Tab bar */}
+                        <div className="flex border-b border-gray-100 dark:border-gray-700 dark:border-gray-700">
                             <button
-                                type="submit"
-                                disabled={loading || !formData.newPassword}
-                                className="w-full py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition disabled:opacity-50"
+                                onClick={() => setActiveTab('info')}
+                                className={`flex-1 py-3 text-sm font-medium flex items-center justify-center gap-1.5 transition-colors ${activeTab === 'info'
+                                        ? 'text-primary-600 dark:text-primary-400 border-b-2 border-primary-600 -mb-px'
+                                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-300'
+                                    }`}
                             >
-                                {loading ? 'Actualizando...' : 'Actualizar Contraseña'}
+                                <User size={14} /> Datos
                             </button>
-                        </form>
-                    </div>
-                </div>
+                            <button
+                                onClick={() => setActiveTab('password')}
+                                className={`flex-1 py-3 text-sm font-medium flex items-center justify-center gap-1.5 transition-colors ${activeTab === 'password'
+                                        ? 'text-primary-600 dark:text-primary-400 border-b-2 border-primary-600 -mb-px'
+                                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-300'
+                                    }`}
+                            >
+                                <Key size={14} /> Contraseña
+                            </button>
+                        </div>
 
-                {/* Right Column: Edit Details & Activity */}
-                <div className="lg:col-span-2 space-y-6">
-                    {/* Edit Profile Info */}
-                    <div className="bg-white rounded-xl shadow-lg p-6">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-6 flex items-center gap-2">
-                            <User size={20} className="text-primary-600" />
-                            Información Personal
-                        </h3>
-                        <form onSubmit={handleSubmitProfile} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
-                                <input
-                                    type="text"
-                                    name="nombre"
-                                    value={formData.nombre}
-                                    onChange={handleChange}
-                                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Usuario</label>
-                                <input
-                                    type="text"
-                                    name="username"
-                                    value={formData.username}
-                                    onChange={handleChange}
-                                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                                <div className="relative">
-                                    <Mail className="absolute left-3 top-3 text-gray-400" size={18} />
-                                    <input
-                                        type="email"
-                                        name="email"
-                                        value={formData.email}
-                                        onChange={handleChange}
-                                        className="w-full pl-10 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-                                    />
-                                </div>
-                            </div>
-                            <div className="md:col-span-2 flex justify-end">
-                                <button
-                                    type="submit"
-                                    disabled={loading}
-                                    className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition flex items-center gap-2"
-                                >
-                                    <Save size={18} />
-                                    {loading ? 'Guardando...' : 'Guardar Cambios'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-
-                    {/* Activity Feed */}
-                    <div className="bg-white rounded-xl shadow-md p-6">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-6 flex items-center gap-2">
-                            <Activity size={20} className="text-primary-600" />
-                            Actividad Reciente
-                        </h3>
-                        <div className="space-y-6">
-                            {loadingLogs ? (
-                                <p className="text-center text-gray-500">Cargando actividad...</p>
-                            ) : auditLogs.length === 0 ? (
-                                <p className="text-center text-gray-500 py-4">No hay actividad reciente.</p>
-                            ) : (
-                                auditLogs.map((log) => (
-                                    <div key={log.id} className="flex gap-4">
-                                        <div className="relative">
-                                            <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 z-10 relative">
-                                                <Activity size={18} />
-                                            </div>
-                                            <div className="absolute top-10 bottom-0 left-1/2 w-0.5 bg-gray-100 -translate-x-1/2"></div>
-                                        </div>
-                                        <div className="pb-6">
-                                            <p className="text-gray-800 font-medium">
-                                                {log.accion} en {log.entidad_tipo}
-                                            </p>
-                                            <p className="text-sm text-gray-500 mt-1">
-                                                {JSON.stringify(log.detalle)}
-                                            </p>
-                                            <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
-                                                <span className="flex items-center gap-1">
-                                                    <Calendar size={12} />
-                                                    {format(new Date(log.fecha_hora), 'dd MMM yyyy', { locale: es })}
-                                                </span>
-                                                <span className="flex items-center gap-1">
-                                                    <Clock size={12} />
-                                                    {format(new Date(log.fecha_hora), 'HH:mm')}
-                                                </span>
-                                            </div>
-                                        </div>
+                        {/* Tab content */}
+                        <div className="flex-1 overflow-y-auto p-5">
+                            {activeTab === 'info' ? (
+                                <form onSubmit={handleSubmitProfile} className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
+                                            Nombre completo
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="nombre"
+                                            value={formData.nombre}
+                                            onChange={handleChange}
+                                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none"
+                                        />
                                     </div>
-                                ))
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
+                                            Usuario
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="username"
+                                            value={formData.username}
+                                            onChange={handleChange}
+                                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1 flex items-center gap-1">
+                                            <Mail size={11} /> Email
+                                        </label>
+                                        <input
+                                            type="email"
+                                            name="email"
+                                            value={formData.email}
+                                            onChange={handleChange}
+                                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none"
+                                        />
+                                    </div>
+                                    <button
+                                        type="submit"
+                                        disabled={loading}
+                                        className="w-full py-2.5 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 transition flex items-center justify-center gap-2 disabled:opacity-50"
+                                    >
+                                        <Save size={15} />
+                                        {loading ? 'Guardando...' : 'Guardar cambios'}
+                                    </button>
+                                </form>
+                            ) : (
+                                <form onSubmit={handleSubmitPassword} className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
+                                            Nueva contraseña
+                                        </label>
+                                        <input
+                                            type="password"
+                                            name="newPassword"
+                                            value={formData.newPassword}
+                                            onChange={handleChange}
+                                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
+                                            Confirmar contraseña
+                                        </label>
+                                        <input
+                                            type="password"
+                                            name="confirmPassword"
+                                            value={formData.confirmPassword}
+                                            onChange={handleChange}
+                                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none"
+                                        />
+                                    </div>
+                                    {formData.newPassword && formData.confirmPassword && formData.newPassword !== formData.confirmPassword && (
+                                        <p className="text-xs text-red-500">Las contraseñas no coinciden</p>
+                                    )}
+                                    <button
+                                        type="submit"
+                                        disabled={loading || !formData.newPassword}
+                                        className="w-full py-2.5 bg-gray-800 text-white rounded-xl text-sm font-semibold hover:bg-gray-900 transition flex items-center justify-center gap-2 disabled:opacity-50"
+                                    >
+                                        <Shield size={15} />
+                                        {loading ? 'Actualizando...' : 'Actualizar contraseña'}
+                                    </button>
+                                </form>
                             )}
                         </div>
                     </div>
+                </div>
+
+                {/* ─── CENTER + RIGHT: Activity (2 cols) ─── */}
+                <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col overflow-hidden">
+
+                    {/* Section header */}
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
+                        <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                            <Activity size={18} className="text-primary-600 dark:text-primary-400 dark:text-primary-400" />
+                            Actividad Reciente
+                            {!loadingLogs && auditLogs.length > 0 && (
+                                <span className="text-xs font-normal text-gray-400">
+                                    ({auditLogs.length} registros)
+                                </span>
+                            )}
+                        </h3>
+                        <button
+                            onClick={fetchUserLogs}
+                            className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 dark:bg-gray-700 rounded-lg transition-colors"
+                            title="Actualizar"
+                        >
+                            <RefreshCw size={15} className="text-gray-400" />
+                        </button>
+                    </div>
+
+                    {/* Scrollable log list */}
+                    <div className="flex-1 overflow-y-auto px-6 py-4">
+                        {loadingLogs ? (
+                            <div className="flex justify-center items-center h-full">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+                            </div>
+                        ) : auditLogs.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                                <Activity size={40} className="mb-3 text-gray-200" />
+                                <p className="text-sm">No hay actividad reciente</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-1">
+                                {pageItems.map((log, i) => (
+                                    <div key={log.id} className="flex gap-4 group">
+                                        {/* Timeline dot */}
+                                        <div className="relative flex flex-col items-center">
+                                            <div className="w-9 h-9 rounded-xl bg-primary-50 border border-primary-100 flex items-center justify-center text-primary-500 z-10 flex-shrink-0">
+                                                <Activity size={16} />
+                                            </div>
+                                            {i < pageItems.length - 1 && (
+                                                <div className="w-px flex-1 bg-gray-100 dark:bg-gray-700 mt-1" />
+                                            )}
+                                        </div>
+
+                                        {/* Content */}
+                                        <div className="pb-4 flex-1 min-w-0">
+                                            <p className="text-sm font-medium text-gray-800 dark:text-gray-200 dark:text-gray-200">
+                                                <span className="text-primary-600 dark:text-primary-400 dark:text-primary-400">{log.accion}</span>
+                                                {' '}en{' '}
+                                                <span className="font-semibold">{log.entidad_tipo}</span>
+                                            </p>
+                                            {log.detalle && Object.keys(log.detalle).length > 0 && (
+                                                <p className="text-xs text-gray-400 mt-0.5 truncate">
+                                                    {Object.entries(log.detalle)
+                                                        .filter(([, v]) => v !== undefined && v !== null)
+                                                        .map(([k, v]) => `${k}: ${v}`)
+                                                        .join(' · ')}
+                                                </p>
+                                            )}
+                                            <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                                                <span className="flex items-center gap-1">
+                                                    <Calendar size={11} />
+                                                    {format(new Date(log.fecha_hora), 'dd MMM yyyy', { locale: es })}
+                                                </span>
+                                                <span className="flex items-center gap-1">
+                                                    <Clock size={11} />
+                                                    {format(new Date(log.fecha_hora), 'HH:mm')}
+                                                </span>
+                                                <span className="text-gray-300">·</span>
+                                                <span>{getRelativeTime(log.fecha_hora)}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* ── Pagination bar ── */}
+                    {!loadingLogs && auditLogs.length > PAGE_SIZE && (
+                        <div className="flex-shrink-0 border-t border-gray-100 dark:border-gray-700 px-6 py-3 flex items-center justify-between">
+                            <span className="text-xs text-gray-400">
+                                {logStart + 1}–{Math.min(logStart + PAGE_SIZE, auditLogs.length)} de {auditLogs.length}
+                            </span>
+                            <div className="flex items-center gap-1">
+                                <button
+                                    onClick={() => setLogPage(p => Math.max(1, p - 1))}
+                                    disabled={logPage === 1}
+                                    className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    <ChevronLeft className="w-4 h-4 text-gray-600" />
+                                </button>
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
+                                    <button
+                                        key={n}
+                                        onClick={() => setLogPage(n)}
+                                        className={`w-7 h-7 text-xs rounded-lg font-medium transition-colors ${n === logPage
+                                                ? 'bg-primary-600 text-white'
+                                                : 'hover:bg-gray-100 dark:hover:bg-gray-700 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                                            }`}
+                                    >
+                                        {n}
+                                    </button>
+                                ))}
+                                <button
+                                    onClick={() => setLogPage(p => Math.min(totalPages, p + 1))}
+                                    disabled={logPage === totalPages}
+                                    className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    <ChevronRight className="w-4 h-4 text-gray-600" />
+                                </button>
+                            </div>
+                            <span className="text-xs text-gray-300">pág. {logPage}/{totalPages}</span>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

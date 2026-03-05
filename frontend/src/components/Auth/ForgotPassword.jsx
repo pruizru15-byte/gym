@@ -105,23 +105,23 @@ const ForgotPassword = () => {
                     <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-600 rounded-2xl mb-4">
                         <Dumbbell className="w-10 h-10 text-white" />
                     </div>
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">GymPro</h1>
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">GymPro</h1>
                     <p className="text-gray-600">Recuperación de Contraseña</p>
                 </div>
 
-                <div className="bg-white rounded-2xl shadow-xl p-8">
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8">
                     {step === 1 ? (
                         /* Step 1: Email */
                         <form onSubmit={handleSendCode} className="space-y-6">
-                            <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                            <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4">
                                 Ingresa tu correo
                             </h2>
-                            <p className="text-sm text-gray-600 mb-6">
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
                                 Te enviaremos un código de seguridad para restablecer tu contraseña.
                             </p>
 
                             <div>
-                                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                                <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                     Correo Electrónico
                                 </label>
                                 <input
@@ -129,7 +129,7 @@ const ForgotPassword = () => {
                                     id="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors ${errors.email ? 'border-red-500' : 'border-gray-300'}`}
+                                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors ${errors.email ? 'border-red-500' : 'border-gray-300 dark:border-gray-600 dark:border-gray-600'}`}
                                     placeholder="tu@email.com"
                                     disabled={loading}
                                 />
@@ -156,7 +156,7 @@ const ForgotPassword = () => {
                     ) : (
                         /* Step 2: Code & New Password */
                         <form onSubmit={handleResetPassword} className="space-y-6">
-                            <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                            <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4">
                                 Restablecer Contraseña
                             </h2>
                             <div className="p-3 bg-blue-50 text-blue-800 rounded-lg text-sm mb-4">
@@ -164,7 +164,7 @@ const ForgotPassword = () => {
                             </div>
 
                             <div>
-                                <label htmlFor="code" className="block text-sm font-medium text-gray-700 mb-1">
+                                <label htmlFor="code" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                     Código de Seguridad
                                 </label>
                                 <input
@@ -172,7 +172,7 @@ const ForgotPassword = () => {
                                     id="code"
                                     value={code}
                                     onChange={(e) => setCode(e.target.value)}
-                                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors ${errors.code ? 'border-red-500' : 'border-gray-300'}`}
+                                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors ${errors.code ? 'border-red-500' : 'border-gray-300 dark:border-gray-600 dark:border-gray-600'}`}
                                     placeholder="123456"
                                     disabled={loading}
                                 />
@@ -180,7 +180,7 @@ const ForgotPassword = () => {
                             </div>
 
                             <div>
-                                <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                                <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                     Nueva Contraseña
                                 </label>
                                 <input
@@ -188,7 +188,7 @@ const ForgotPassword = () => {
                                     id="newPassword"
                                     value={newPassword}
                                     onChange={(e) => setNewPassword(e.target.value)}
-                                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors ${errors.newPassword ? 'border-red-500' : 'border-gray-300'}`}
+                                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors ${errors.newPassword ? 'border-red-500' : 'border-gray-300 dark:border-gray-600 dark:border-gray-600'}`}
                                     placeholder="••••••••"
                                     disabled={loading}
                                 />
@@ -196,7 +196,7 @@ const ForgotPassword = () => {
                             </div>
 
                             <div>
-                                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                     Confirmar Contraseña
                                 </label>
                                 <input
@@ -204,7 +204,7 @@ const ForgotPassword = () => {
                                     id="confirmPassword"
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
-                                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'}`}
+                                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300 dark:border-gray-600 dark:border-gray-600'}`}
                                     placeholder="••••••••"
                                     disabled={loading}
                                 />
@@ -230,8 +230,8 @@ const ForgotPassword = () => {
                         </form>
                     )}
 
-                    <div className="mt-6 pt-6 border-t border-gray-100 text-center">
-                        <Link to="/login" className="inline-flex items-center text-sm font-medium text-gray-600 hover:text-primary-600 transition-colors">
+                    <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700 text-center">
+                        <Link to="/login" className="inline-flex items-center text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:text-primary-400 transition-colors">
                             <ArrowLeft className="w-4 h-4 mr-2" />
                             Volver al inicio de sesión
                         </Link>

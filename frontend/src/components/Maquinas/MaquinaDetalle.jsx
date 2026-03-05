@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { machinesAPI } from '../../services/api'
-import { 
+import {
   ArrowLeft,
   Dumbbell,
   Calendar,
@@ -14,33 +14,48 @@ import {
   DollarSign,
   Clock,
   FileText,
-  ClipboardList
+  ClipboardList,
+  Power,
+  RotateCcw,
+  ChevronDown
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 /**
- * MaquinaDetalle - Machine detail view with maintenance history
+ * MaquinaDetalle - Machine detail view with maintenance history and quick status updates
  */
 const MaquinaDetalle = () => {
   const { id } = useParams()
   const navigate = useNavigate()
-  
+
   const [maquina, setMaquina] = useState(null)
   const [maintenanceHistory, setMaintenanceHistory] = useState([])
   const [loading, setLoading] = useState(true)
   const [showMaintenanceModal, setShowMaintenanceModal] = useState(false)
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false)
+  const [changingStatus, setChangingStatus] = useState(false)
   const [maintenanceForm, setMaintenanceForm] = useState({
     tipo: 'preventivo',
     descripcion: '',
     costo: '',
     realizado_por: '',
     notas: '',
+    nuevo_estado: '',
   })
 
   useEffect(() => {
     fetchMaquina()
     fetchMaintenanceHistory()
   }, [id])
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => setShowStatusDropdown(false)
+    if (showStatusDropdown) {
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [showStatusDropdown])
 
   const fetchMaquina = async () => {
     try {
@@ -64,13 +79,42 @@ const MaquinaDetalle = () => {
     }
   }
 
+  const handleStatusChange = async (newStatus) => {
+    setShowStatusDropdown(false)
+    setChangingStatus(true)
+    try {
+      await machinesAPI.updateStatus(id, { estado: newStatus })
+      const statusLabels = {
+        disponible: 'Disponible',
+        mantenimiento: 'En Mantenimiento',
+        fuera_servicio: 'Fuera de Servicio'
+      }
+      toast.success(`Estado cambiado a "${statusLabels[newStatus]}"`)
+      fetchMaquina()
+    } catch (error) {
+      toast.error('Error al cambiar estado')
+      console.error('Error updating status:', error)
+    } finally {
+      setChangingStatus(false)
+    }
+  }
+
   const handleMaintenanceSubmit = async (e) => {
     e.preventDefault()
 
     try {
-      await machinesAPI.recordMaintenance(id, maintenanceForm)
+      const dataToSend = {
+        ...maintenanceForm,
+        fecha: new Date().toISOString().split('T')[0],
+      }
+      // Only send nuevo_estado if user selected one
+      if (!dataToSend.nuevo_estado) {
+        delete dataToSend.nuevo_estado
+      }
+
+      await machinesAPI.recordMaintenance(id, dataToSend)
       toast.success('Mantenimiento registrado exitosamente')
-      
+
       // Reset form and refresh data
       setMaintenanceForm({
         tipo: 'preventivo',
@@ -78,6 +122,7 @@ const MaquinaDetalle = () => {
         costo: '',
         realizado_por: '',
         notas: '',
+        nuevo_estado: '',
       })
       setShowMaintenanceModal(false)
       fetchMaquina()
@@ -95,19 +140,22 @@ const MaquinaDetalle = () => {
         label: 'Disponible',
         color: 'bg-green-100 text-green-800 border-green-200',
         icon: CheckCircle,
-        bgGradient: 'from-green-50 to-green-100'
+        bgGradient: 'from-green-50 to-green-100',
+        dotColor: 'bg-green-500'
       },
       mantenimiento: {
         label: 'En Mantenimiento',
         color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
         icon: Wrench,
-        bgGradient: 'from-yellow-50 to-yellow-100'
+        bgGradient: 'from-yellow-50 to-yellow-100',
+        dotColor: 'bg-yellow-500'
       },
       fuera_servicio: {
         label: 'Fuera de Servicio',
         color: 'bg-red-100 text-red-800 border-red-200',
         icon: AlertCircle,
-        bgGradient: 'from-red-50 to-red-100'
+        bgGradient: 'from-red-50 to-red-100',
+        dotColor: 'bg-red-500'
       },
     }
     return configs[estado] || configs.disponible
@@ -123,6 +171,16 @@ const MaquinaDetalle = () => {
     return diffDays
   }
 
+  // Get quick status options (excluding current status)
+  const getQuickStatusOptions = (currentStatus) => {
+    const allOptions = [
+      { value: 'disponible', label: 'Marcar Disponible', icon: CheckCircle, color: 'text-green-700 hover:bg-green-50', dotColor: 'bg-green-500' },
+      { value: 'mantenimiento', label: 'Enviar a Mantenimiento', icon: Wrench, color: 'text-yellow-700 hover:bg-yellow-50', dotColor: 'bg-yellow-500' },
+      { value: 'fuera_servicio', label: 'Fuera de Servicio', icon: AlertCircle, color: 'text-red-700 hover:bg-red-50', dotColor: 'bg-red-500' },
+    ]
+    return allOptions.filter(opt => opt.value !== currentStatus)
+  }
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -135,10 +193,10 @@ const MaquinaDetalle = () => {
     return (
       <div className="text-center py-12">
         <Dumbbell className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">
+        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
           Máquina no encontrada
         </h3>
-        <Link to="/maquinas" className="text-primary-600 hover:text-primary-700">
+        <Link to="/maquinas" className="text-primary-600 dark:text-primary-400 hover:text-primary-700">
           Volver a máquinas
         </Link>
       </div>
@@ -148,6 +206,7 @@ const MaquinaDetalle = () => {
   const statusConfig = getStatusConfig(maquina.estado)
   const StatusIcon = statusConfig.icon
   const daysUntilMaintenance = getDaysUntilMaintenance(maquina.proximo_mantenimiento)
+  const quickStatusOptions = getQuickStatusOptions(maquina.estado)
 
   return (
     <div className="space-y-6">
@@ -155,13 +214,13 @@ const MaquinaDetalle = () => {
       <div className="flex items-center gap-4">
         <button
           onClick={() => navigate('/maquinas')}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 dark:bg-gray-700 rounded-lg transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-gray-900">{maquina.nombre}</h1>
-          <p className="text-gray-600 mt-1">{maquina.codigo}</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white dark:text-white">{maquina.nombre}</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">{maquina.codigo}</p>
         </div>
         <Link
           to={`/maquinas/${id}/editar`}
@@ -172,21 +231,69 @@ const MaquinaDetalle = () => {
         </Link>
       </div>
 
-      {/* Status Banner */}
+      {/* Status Banner with Quick Actions */}
       <div className={`bg-gradient-to-r ${statusConfig.bgGradient} border-2 ${statusConfig.color.replace('bg-', 'border-')} rounded-lg p-6`}>
-        <div className="flex items-center gap-3">
-          <StatusIcon className="w-8 h-8" />
-          <div>
-            <h2 className="text-xl font-bold">{statusConfig.label}</h2>
-            {daysUntilMaintenance !== null && (
-              <p className="text-sm mt-1">
-                {daysUntilMaintenance > 0 
-                  ? `Próximo mantenimiento en ${daysUntilMaintenance} día(s)`
-                  : daysUntilMaintenance === 0
-                  ? 'Mantenimiento programado para hoy'
-                  : `Mantenimiento atrasado por ${Math.abs(daysUntilMaintenance)} día(s)`
-                }
-              </p>
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-3">
+            <StatusIcon className="w-8 h-8" />
+            <div>
+              <h2 className="text-xl font-bold">{statusConfig.label}</h2>
+              {daysUntilMaintenance !== null && (
+                <p className="text-sm mt-1">
+                  {daysUntilMaintenance > 0
+                    ? `Próximo mantenimiento en ${daysUntilMaintenance} día(s)`
+                    : daysUntilMaintenance === 0
+                      ? 'Mantenimiento programado para hoy'
+                      : `Mantenimiento atrasado por ${Math.abs(daysUntilMaintenance)} día(s)`
+                  }
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Quick Status Change Dropdown */}
+          <div className="relative">
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setShowStatusDropdown(!showStatusDropdown)
+              }}
+              disabled={changingStatus}
+              className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-white dark:bg-gray-800 transition-colors text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm"
+            >
+              {changingStatus ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                  Cambiando...
+                </>
+              ) : (
+                <>
+                  <RotateCcw className="w-4 h-4" />
+                  Cambiar Estado
+                  <ChevronDown className="w-4 h-4" />
+                </>
+              )}
+            </button>
+
+            {showStatusDropdown && (
+              <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
+                {quickStatusOptions.map((option) => {
+                  const Icon = option.icon
+                  return (
+                    <button
+                      key={option.value}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleStatusChange(option.value)
+                      }}
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium ${option.color} transition-colors`}
+                    >
+                      <span className={`w-2.5 h-2.5 rounded-full ${option.dotColor}`}></span>
+                      {option.label}
+                    </button>
+                  )
+                })}
+              </div>
             )}
           </div>
         </div>
@@ -196,8 +303,8 @@ const MaquinaDetalle = () => {
         {/* Main Info */}
         <div className="lg:col-span-2 space-y-6">
           {/* Basic Information */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
               Información General
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -205,7 +312,7 @@ const MaquinaDetalle = () => {
                 <Dumbbell className="w-5 h-5 text-gray-400 mt-0.5" />
                 <div>
                   <p className="text-sm text-gray-600">Categoría</p>
-                  <p className="font-semibold text-gray-900">{maquina.categoria}</p>
+                  <p className="font-semibold text-gray-900 dark:text-white dark:text-white">{maquina.categoria}</p>
                 </div>
               </div>
 
@@ -214,7 +321,7 @@ const MaquinaDetalle = () => {
                   <ClipboardList className="w-5 h-5 text-gray-400 mt-0.5" />
                   <div>
                     <p className="text-sm text-gray-600">Marca</p>
-                    <p className="font-semibold text-gray-900">{maquina.marca}</p>
+                    <p className="font-semibold text-gray-900 dark:text-white dark:text-white">{maquina.marca}</p>
                   </div>
                 </div>
               )}
@@ -224,7 +331,7 @@ const MaquinaDetalle = () => {
                   <FileText className="w-5 h-5 text-gray-400 mt-0.5" />
                   <div>
                     <p className="text-sm text-gray-600">Modelo</p>
-                    <p className="font-semibold text-gray-900">{maquina.modelo}</p>
+                    <p className="font-semibold text-gray-900 dark:text-white dark:text-white">{maquina.modelo}</p>
                   </div>
                 </div>
               )}
@@ -234,7 +341,7 @@ const MaquinaDetalle = () => {
                   <MapPin className="w-5 h-5 text-gray-400 mt-0.5" />
                   <div>
                     <p className="text-sm text-gray-600">Ubicación</p>
-                    <p className="font-semibold text-gray-900">{maquina.ubicacion}</p>
+                    <p className="font-semibold text-gray-900 dark:text-white dark:text-white">{maquina.ubicacion}</p>
                   </div>
                 </div>
               )}
@@ -244,7 +351,7 @@ const MaquinaDetalle = () => {
                   <Calendar className="w-5 h-5 text-gray-400 mt-0.5" />
                   <div>
                     <p className="text-sm text-gray-600">Fecha de Adquisición</p>
-                    <p className="font-semibold text-gray-900">
+                    <p className="font-semibold text-gray-900 dark:text-white dark:text-white">
                       {new Date(maquina.fecha_adquisicion).toLocaleDateString()}
                     </p>
                   </div>
@@ -256,7 +363,7 @@ const MaquinaDetalle = () => {
                   <DollarSign className="w-5 h-5 text-gray-400 mt-0.5" />
                   <div>
                     <p className="text-sm text-gray-600">Costo</p>
-                    <p className="font-semibold text-gray-900">
+                    <p className="font-semibold text-gray-900 dark:text-white dark:text-white">
                       ${Number(maquina.costo).toFixed(2)}
                     </p>
                   </div>
@@ -265,24 +372,24 @@ const MaquinaDetalle = () => {
             </div>
 
             {maquina.descripcion && (
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <p className="text-sm text-gray-600 mb-2">Descripción</p>
-                <p className="text-gray-900">{maquina.descripcion}</p>
+              <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700 dark:border-gray-700">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Descripción</p>
+                <p className="text-gray-900 dark:text-white dark:text-white">{maquina.descripcion}</p>
               </div>
             )}
 
             {maquina.instrucciones_uso && (
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <p className="text-sm text-gray-600 mb-2">Instrucciones de Uso</p>
-                <p className="text-gray-900 whitespace-pre-line">{maquina.instrucciones_uso}</p>
+              <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700 dark:border-gray-700">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Instrucciones de Uso</p>
+                <p className="text-gray-900 dark:text-white whitespace-pre-line">{maquina.instrucciones_uso}</p>
               </div>
             )}
           </div>
 
           {/* Maintenance History */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <Wrench className="w-5 h-5" />
                 Historial de Mantenimiento
               </h3>
@@ -298,37 +405,36 @@ const MaquinaDetalle = () => {
             {maintenanceHistory.length === 0 ? (
               <div className="text-center py-8">
                 <Wrench className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                <p className="text-gray-500 text-sm">No hay registros de mantenimiento</p>
+                <p className="text-gray-500 dark:text-gray-400 text-sm">No hay registros de mantenimiento</p>
               </div>
             ) : (
               <div className="space-y-4">
                 {maintenanceHistory.map((record) => (
                   <div
                     key={record.id}
-                    className="border border-gray-200 rounded-lg p-4"
+                    className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div>
-                        <span className={`inline-block px-2 py-1 text-xs font-medium rounded ${
-                          record.tipo === 'preventivo' 
-                            ? 'bg-blue-100 text-blue-800' 
+                        <span className={`inline-block px-2 py-1 text-xs font-medium rounded ${record.tipo === 'preventivo'
+                            ? 'bg-blue-100 text-blue-800'
                             : 'bg-orange-100 text-orange-800'
-                        }`}>
+                          }`}>
                           {record.tipo === 'preventivo' ? 'Preventivo' : 'Correctivo'}
                         </span>
-                        <p className="text-sm text-gray-600 mt-1">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                           {new Date(record.fecha).toLocaleDateString()} - {record.realizado_por}
                         </p>
                       </div>
                       {record.costo && (
-                        <p className="font-semibold text-gray-900">
+                        <p className="font-semibold text-gray-900 dark:text-white dark:text-white">
                           ${Number(record.costo).toFixed(2)}
                         </p>
                       )}
                     </div>
-                    <p className="text-gray-900 mb-2">{record.descripcion}</p>
+                    <p className="text-gray-900 dark:text-white mb-2">{record.descripcion}</p>
                     {record.notas && (
-                      <p className="text-sm text-gray-600 italic">{record.notas}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 italic">{record.notas}</p>
                     )}
                   </div>
                 ))}
@@ -340,8 +446,8 @@ const MaquinaDetalle = () => {
         {/* Sidebar */}
         <div className="lg:col-span-1 space-y-6">
           {/* Maintenance Schedule */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <Calendar className="w-5 h-5" />
               Programa de Mantenimiento
             </h3>
@@ -349,7 +455,7 @@ const MaquinaDetalle = () => {
               {maquina.frecuencia_mantenimiento_dias && (
                 <div>
                   <p className="text-sm text-gray-600">Frecuencia</p>
-                  <p className="font-semibold text-gray-900">
+                  <p className="font-semibold text-gray-900 dark:text-white dark:text-white">
                     Cada {maquina.frecuencia_mantenimiento_dias} días
                   </p>
                 </div>
@@ -358,7 +464,7 @@ const MaquinaDetalle = () => {
               {maquina.ultimo_mantenimiento && (
                 <div>
                   <p className="text-sm text-gray-600">Último Mantenimiento</p>
-                  <p className="font-semibold text-gray-900">
+                  <p className="font-semibold text-gray-900 dark:text-white dark:text-white">
                     {new Date(maquina.ultimo_mantenimiento).toLocaleDateString()}
                   </p>
                 </div>
@@ -367,22 +473,21 @@ const MaquinaDetalle = () => {
               {maquina.proximo_mantenimiento && (
                 <div>
                   <p className="text-sm text-gray-600">Próximo Mantenimiento</p>
-                  <p className={`font-bold ${
-                    daysUntilMaintenance && daysUntilMaintenance <= 7
+                  <p className={`font-bold ${daysUntilMaintenance && daysUntilMaintenance <= 7
                       ? 'text-red-600'
-                      : 'text-gray-900'
-                  }`}>
+                      : 'text-gray-900 dark:text-white dark:text-white'
+                    }`}>
                     {new Date(maquina.proximo_mantenimiento).toLocaleDateString()}
                   </p>
                   {daysUntilMaintenance !== null && daysUntilMaintenance <= 7 && (
                     <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded flex items-center gap-2">
                       <Clock className="w-4 h-4 text-red-600" />
                       <span className="text-xs text-red-800">
-                        {daysUntilMaintenance > 0 
+                        {daysUntilMaintenance > 0
                           ? `En ${daysUntilMaintenance} día(s)`
                           : daysUntilMaintenance === 0
-                          ? 'Hoy'
-                          : `Atrasado ${Math.abs(daysUntilMaintenance)} día(s)`
+                            ? 'Hoy'
+                            : `Atrasado ${Math.abs(daysUntilMaintenance)} día(s)`
                         }
                       </span>
                     </div>
@@ -394,13 +499,13 @@ const MaquinaDetalle = () => {
 
           {/* Additional Info */}
           {maquina.vida_util_anos && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                 Información Adicional
               </h3>
               <div>
                 <p className="text-sm text-gray-600">Vida Útil</p>
-                <p className="font-semibold text-gray-900">
+                <p className="font-semibold text-gray-900 dark:text-white dark:text-white">
                   {maquina.vida_util_anos} año(s)
                 </p>
               </div>
@@ -419,20 +524,23 @@ const MaquinaDetalle = () => {
       {/* Maintenance Modal */}
       {showMaintenanceModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-lg w-full p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
               Registrar Mantenimiento
             </h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              Fecha: {new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            </p>
 
             <form onSubmit={handleMaintenanceSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Tipo de Mantenimiento
                 </label>
                 <select
                   value={maintenanceForm.tipo}
                   onChange={(e) => setMaintenanceForm({ ...maintenanceForm, tipo: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 >
                   <option value="preventivo">Preventivo</option>
                   <option value="correctivo">Correctivo</option>
@@ -440,7 +548,7 @@ const MaquinaDetalle = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Descripción <span className="text-red-500">*</span>
                 </label>
                 <textarea
@@ -448,26 +556,26 @@ const MaquinaDetalle = () => {
                   onChange={(e) => setMaintenanceForm({ ...maintenanceForm, descripcion: e.target.value })}
                   required
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="Describe el mantenimiento realizado..."
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Realizado Por
                 </label>
                 <input
                   type="text"
                   value={maintenanceForm.realizado_por}
                   onChange={(e) => setMaintenanceForm({ ...maintenanceForm, realizado_por: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="Nombre del técnico"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Costo
                 </label>
                 <input
@@ -476,20 +584,46 @@ const MaquinaDetalle = () => {
                   onChange={(e) => setMaintenanceForm({ ...maintenanceForm, costo: e.target.value })}
                   min="0"
                   step="0.01"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="0.00"
                 />
               </div>
 
+              {/* Status Change Option */}
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Cambiar estado de la máquina
+                </label>
+                <select
+                  value={maintenanceForm.nuevo_estado}
+                  onChange={(e) => setMaintenanceForm({ ...maintenanceForm, nuevo_estado: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                >
+                  <option value="">Sin cambio (mantener "{statusConfig.label}")</option>
+                  {maquina.estado !== 'disponible' && (
+                    <option value="disponible">✅ Marcar como Disponible</option>
+                  )}
+                  {maquina.estado !== 'mantenimiento' && (
+                    <option value="mantenimiento">🔧 Enviar a Mantenimiento</option>
+                  )}
+                  {maquina.estado !== 'fuera_servicio' && (
+                    <option value="fuera_servicio">⛔ Fuera de Servicio</option>
+                  )}
+                </select>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Estado actual: {statusConfig.label}
+                </p>
+              </div>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Notas
                 </label>
                 <textarea
                   value={maintenanceForm.notas}
                   onChange={(e) => setMaintenanceForm({ ...maintenanceForm, notas: e.target.value })}
                   rows={2}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="Notas adicionales..."
                 />
               </div>
@@ -498,7 +632,7 @@ const MaquinaDetalle = () => {
                 <button
                   type="button"
                   onClick={() => setShowMaintenanceModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition-colors"
                 >
                   Cancelar
                 </button>

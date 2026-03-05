@@ -17,9 +17,12 @@ const AbrirCajaModal = ({ isOpen, onClose, onConfirm }) => {
                 monto_inicial: parseFloat(montoInicial),
                 notas: notas
             });
-            // Reset form
+            // Reset form and close modal
             setMontoInicial('');
             setNotas('');
+            onClose();
+        } catch (err) {
+            // allow retry
         } finally {
             setIsSubmitting(false);
         }

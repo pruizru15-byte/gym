@@ -6,7 +6,7 @@ const db = require('../config/database');
 const getAll = (req, res) => {
     try {
         const configuracion = db.prepare('SELECT * FROM configuracion ORDER BY clave ASC').all();
-        
+
         // Convert to key-value object
         const config = {};
         configuracion.forEach(item => {
@@ -16,7 +16,7 @@ const getAll = (req, res) => {
                 fecha_modificacion: item.fecha_modificacion
             };
         });
-        
+
         res.json(config);
     } catch (error) {
         console.error('Get configuration error:', error);
@@ -30,13 +30,13 @@ const getAll = (req, res) => {
 const getByKey = (req, res) => {
     try {
         const { clave } = req.params;
-        
+
         const config = db.prepare('SELECT * FROM configuracion WHERE clave = ?').get(clave);
-        
+
         if (!config) {
             return res.status(404).json({ error: 'Configuration not found' });
         }
-        
+
         res.json(config);
     } catch (error) {
         console.error('Get configuration by key error:', error);
@@ -50,14 +50,14 @@ const getByKey = (req, res) => {
 const set = (req, res) => {
     try {
         const { clave, valor, descripcion } = req.body;
-        
+
         if (!clave) {
             return res.status(400).json({ error: 'Key is required' });
         }
-        
+
         // Check if exists
         const existing = db.prepare('SELECT id FROM configuracion WHERE clave = ?').get(clave);
-        
+
         if (existing) {
             // Update
             db.prepare(`
@@ -74,7 +74,7 @@ const set = (req, res) => {
                 VALUES (?, ?, ?)
             `).run(clave, valor, descripcion || null);
         }
-        
+
         const config = db.prepare('SELECT * FROM configuracion WHERE clave = ?').get(clave);
         res.json(config);
     } catch (error) {
@@ -89,11 +89,11 @@ const set = (req, res) => {
 const updateMultiple = (req, res) => {
     try {
         const { configuraciones } = req.body; // Array of { clave, valor, descripcion }
-        
+
         if (!Array.isArray(configuraciones) || configuraciones.length === 0) {
             return res.status(400).json({ error: 'Configurations array is required' });
         }
-        
+
         const updateStmt = db.prepare(`
             UPDATE configuracion SET
                 valor = ?,
@@ -101,18 +101,18 @@ const updateMultiple = (req, res) => {
                 fecha_modificacion = CURRENT_TIMESTAMP
             WHERE clave = ?
         `);
-        
+
         const insertStmt = db.prepare(`
             INSERT INTO configuracion (clave, valor, descripcion)
             VALUES (?, ?, ?)
         `);
-        
+
         const transaction = db.transaction(() => {
             for (const config of configuraciones) {
                 if (!config.clave) continue;
-                
+
                 const existing = db.prepare('SELECT id FROM configuracion WHERE clave = ?').get(config.clave);
-                
+
                 if (existing) {
                     updateStmt.run(config.valor, config.descripcion || null, config.clave);
                 } else {
@@ -120,14 +120,14 @@ const updateMultiple = (req, res) => {
                 }
             }
         });
-        
+
         transaction();
-        
+
         // Get all updated configurations
         const claves = configuraciones.map(c => c.clave);
         const placeholders = claves.map(() => '?').join(',');
         const updated = db.prepare(`SELECT * FROM configuracion WHERE clave IN (${placeholders})`).all(...claves);
-        
+
         res.json(updated);
     } catch (error) {
         console.error('Update multiple configurations error:', error);
@@ -141,14 +141,14 @@ const updateMultiple = (req, res) => {
 const remove = (req, res) => {
     try {
         const { clave } = req.params;
-        
+
         const config = db.prepare('SELECT id FROM configuracion WHERE clave = ?').get(clave);
         if (!config) {
             return res.status(404).json({ error: 'Configuration not found' });
         }
-        
+
         db.prepare('DELETE FROM configuracion WHERE clave = ?').run(clave);
-        
+
         res.json({ message: 'Configuration deleted successfully' });
     } catch (error) {
         console.error('Delete configuration error:', error);
@@ -249,8 +249,23 @@ const initializeDefaults = (req, res) => {
             },
             {
                 clave: 'impuesto_ventas',
-                valor: '0',
-                descripcion: 'Porcentaje de impuesto en ventas (IVA)'
+                valor: '18',
+                descripcion: 'Porcentaje de impuesto en ventas (IGV)'
+            },
+            {
+                clave: 'dias_alerta_producto',
+                valor: '15',
+                descripcion: 'Días antes de vencimiento de producto para alertar'
+            },
+            {
+                clave: 'alerta_stock_minimo',
+                valor: 'true',
+                descripcion: 'Alertar cuando el stock esté bajo'
+            },
+            {
+                clave: 'alerta_mantenimiento',
+                valor: 'true',
+                descripcion: 'Alertar mantenimiento de máquinas'
             },
             {
                 clave: 'formato_codigo_cliente',
@@ -263,22 +278,22 @@ const initializeDefaults = (req, res) => {
                 descripcion: 'Formato para códigos de producto'
             }
         ];
-        
+
         const insertStmt = db.prepare(`
             INSERT OR IGNORE INTO configuracion (clave, valor, descripcion)
             VALUES (?, ?, ?)
         `);
-        
+
         const transaction = db.transaction(() => {
             for (const config of defaults) {
                 insertStmt.run(config.clave, config.valor, config.descripcion);
             }
         });
-        
+
         transaction();
-        
+
         const configuracion = db.prepare('SELECT * FROM configuracion ORDER BY clave ASC').all();
-        
+
         res.json({
             message: 'Default configuration initialized',
             total: configuracion.length,
@@ -296,19 +311,19 @@ const initializeDefaults = (req, res) => {
 const getGymInfo = (req, res) => {
     try {
         const info = {};
-        
+
         const keys = [
             'nombre_gimnasio', 'direccion', 'telefono', 'email',
             'horario_apertura', 'horario_cierre', 'logo', 'tema_color'
         ];
-        
+
         const placeholders = keys.map(() => '?').join(',');
         const configs = db.prepare(`SELECT * FROM configuracion WHERE clave IN (${placeholders})`).all(...keys);
-        
+
         configs.forEach(config => {
             info[config.clave] = config.valor;
         });
-        
+
         res.json(info);
     } catch (error) {
         console.error('Get gym info error:', error);
@@ -331,7 +346,7 @@ const updateGymInfo = (req, res) => {
             logo,
             tema_color
         } = req.body;
-        
+
         const updates = {
             nombre_gimnasio,
             direccion,
@@ -342,25 +357,25 @@ const updateGymInfo = (req, res) => {
             logo,
             tema_color
         };
-        
+
         const updateStmt = db.prepare(`
             UPDATE configuracion SET
                 valor = ?,
                 fecha_modificacion = CURRENT_TIMESTAMP
             WHERE clave = ?
         `);
-        
+
         const insertStmt = db.prepare(`
             INSERT INTO configuracion (clave, valor, descripcion)
             VALUES (?, ?, ?)
         `);
-        
+
         const transaction = db.transaction(() => {
             for (const [clave, valor] of Object.entries(updates)) {
                 if (valor === undefined) continue;
-                
+
                 const existing = db.prepare('SELECT id FROM configuracion WHERE clave = ?').get(clave);
-                
+
                 if (existing) {
                     updateStmt.run(valor, clave);
                 } else {
@@ -368,9 +383,9 @@ const updateGymInfo = (req, res) => {
                 }
             }
         });
-        
+
         transaction();
-        
+
         res.json({ message: 'Gym info updated successfully' });
     } catch (error) {
         console.error('Update gym info error:', error);
@@ -384,17 +399,17 @@ const updateGymInfo = (req, res) => {
 const getSystemSettings = (req, res) => {
     try {
         const settings = {};
-        
+
         const keys = [
             'moneda', 'zona_horaria', 'idioma', 'dias_alerta_vencimiento',
             'permitir_acceso_vencido', 'backup_automatico', 'frecuencia_backup_dias',
             'notificaciones_email', 'notificaciones_sms', 'impuesto_ventas',
             'formato_codigo_cliente', 'formato_codigo_producto'
         ];
-        
+
         const placeholders = keys.map(() => '?').join(',');
         const configs = db.prepare(`SELECT * FROM configuracion WHERE clave IN (${placeholders})`).all(...keys);
-        
+
         configs.forEach(config => {
             // Convert boolean strings
             if (config.valor === 'true' || config.valor === 'false') {
@@ -403,7 +418,7 @@ const getSystemSettings = (req, res) => {
                 settings[config.clave] = config.valor;
             }
         });
-        
+
         res.json(settings);
     } catch (error) {
         console.error('Get system settings error:', error);

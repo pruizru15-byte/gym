@@ -10,13 +10,13 @@ const getAll = (req, res) => {
         const offset = (page - 1) * limit;
 
         let query = `
-            SELECT v.*, 
+            SELECT v.*,
                    c.codigo as cliente_codigo, c.nombre as cliente_nombre, c.apellido as cliente_apellido,
                    u.nombre as usuario_nombre
             FROM ventas v
             LEFT JOIN clientes c ON v.cliente_id = c.id
             LEFT JOIN usuarios u ON v.usuario_id = u.id
-            WHERE 1=1
+            WHERE 1 = 1
         `;
         const params = [];
 
@@ -74,14 +74,14 @@ const getById = (req, res) => {
 
         // Get sale header
         const venta = db.prepare(`
-            SELECT v.*, 
-                   c.codigo as cliente_codigo, c.nombre as cliente_nombre, c.apellido as cliente_apellido,
-                   u.nombre as usuario_nombre
+            SELECT v.*,
+            c.codigo as cliente_codigo, c.nombre as cliente_nombre, c.apellido as cliente_apellido,
+            u.nombre as usuario_nombre
             FROM ventas v
             LEFT JOIN clientes c ON v.cliente_id = c.id
             LEFT JOIN usuarios u ON v.usuario_id = u.id
             WHERE v.id = ?
-        `).get(id);
+            `).get(id);
 
         if (!venta) {
             return res.status(404).json({ error: 'Sale not found' });
@@ -93,7 +93,7 @@ const getById = (req, res) => {
             FROM ventas_detalle vd
             JOIN productos p ON vd.producto_id = p.id
             WHERE vd.venta_id = ?
-        `).all(id);
+            `).all(id);
 
         res.json({
             ...venta,
@@ -115,12 +115,24 @@ const create = (req, res) => {
             productos, // Array of { producto_id, cantidad, precio_unitario }
             metodo_pago,
             monto_recibido,
-            notas
+            notas,
+            es_cuotas,
+            num_cuotas
         } = req.body;
+
+        const numCuotasToUse = es_cuotas ? (parseInt(num_cuotas) || 1) : 1;
+        const isCuotasPlan = numCuotasToUse > 1 || es_cuotas;
 
         // Validation
         if (!productos || !Array.isArray(productos) || productos.length === 0) {
             return res.status(400).json({ error: 'Products are required' });
+        }
+
+        // Si es pago en cuotas, el cliente genérico no está permitido (cliente_id debe existir y ser válido)
+        if (isCuotasPlan && !cliente_id) {
+            return res.status(400).json({
+                error: 'Debe seleccionar un cliente registrado para realizar ventas a crédito/cuotas.'
+            });
         }
 
         // Verifica que la caja esté abierta
@@ -149,7 +161,7 @@ const create = (req, res) => {
             // Check stock
             if (producto.stock_actual < item.cantidad) {
                 return res.status(400).json({
-                    error: `Insufficient stock for ${producto.nombre}. Available: ${producto.stock_actual}`
+                    error: `Insufficient stock for ${producto.nombre}.Available: ${producto.stock_actual} `
                 });
             }
 
@@ -165,38 +177,47 @@ const create = (req, res) => {
             });
         }
 
-        // Calculate change
-        const cambio = monto_recibido ? monto_recibido - total : 0;
+        const montoCuota = total / numCuotasToUse;
+        const pagoInicialReal = isCuotasPlan ? montoCuota : (monto_recibido !== undefined ? monto_recibido : total);
+        const montoRestante = isCuotasPlan ? total - montoCuota : 0;
 
-        if (monto_recibido && cambio < 0) {
-            return res.status(400).json({ error: 'Insufficient payment amount' });
+        let cambio = 0;
+        if (!isCuotasPlan && monto_recibido !== undefined) {
+            cambio = monto_recibido - total;
+            if (cambio < 0) {
+                return res.status(400).json({ error: 'Insufficient payment amount' });
+            }
         }
+
+        const estadoPago = isCuotasPlan && montoRestante > 0 ? 'pendiente' : 'pagado';
 
         // Start transaction
         const insertVenta = db.prepare(`
-            INSERT INTO ventas (cliente_id, total, metodo_pago, monto_recibido, cambio, notas, usuario_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        `);
+            INSERT INTO ventas(cliente_id, total, metodo_pago, monto_recibido, cambio, notas, usuario_id, monto_pagado, estado_pago)
+        VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `);
 
         const insertDetalle = db.prepare(`
-            INSERT INTO ventas_detalle (venta_id, producto_id, cantidad, precio_unitario, subtotal)
-            VALUES (?, ?, ?, ?, ?)
-        `);
+            INSERT INTO ventas_detalle(venta_id, producto_id, cantidad, precio_unitario, subtotal)
+        VALUES(?, ?, ?, ?, ?)
+            `);
 
         const updateStock = db.prepare(`
             UPDATE productos SET stock_actual = stock_actual - ? WHERE id = ?
-        `);
+            `);
 
+        // Insert pago (historial unificado de pagos)
         const insertPago = db.prepare(`
-            INSERT INTO pagos (cliente_id, tipo, referencia_id, concepto, monto, metodo_pago, usuario_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO pagos(cliente_id, tipo, referencia_id, concepto, monto, metodo_pago, usuario_id)
+        VALUES(?, ?, ?, ?, ?, ?, ?)
         `);
 
         const transaction = db.transaction(() => {
             // Insert sale
             const ventaResult = insertVenta.run(
                 cliente_id || null, total, metodo_pago || null,
-                monto_recibido || null, cambio, notas || null, req.user.id
+                pagoInicialReal || null, isCuotasPlan ? 0 : cambio, notas || null, req.user.id,
+                pagoInicialReal, estadoPago
             );
             const ventaId = ventaResult.lastInsertRowid;
 
@@ -210,11 +231,47 @@ const create = (req, res) => {
                 updateStock.run(item.cantidad, item.producto_id);
             }
 
-            // Register payment
-            insertPago.run(
+            // Register initial payment
+            const conceptoVenta = isCuotasPlan ? `Venta Cód.${ventaId} (Cuota 1 / ${numCuotasToUse})` : `Venta de productos(Cód.${ventaId})`;
+
+            const pagoResult = insertPago.run(
                 cliente_id || null, 'venta', ventaId,
-                'Venta de productos', total, metodo_pago || null, req.user.id
+                conceptoVenta, pagoInicialReal, metodo_pago || null, req.user.id
             );
+
+            const idDelPago = pagoResult.lastInsertRowid;
+
+            // Create installments (cuotas) if needed
+            if (isCuotasPlan) {
+                const insertCuota = db.prepare(`
+                    INSERT INTO cuotas(
+            asignacion_id, venta_id, numero_cuota, monto, fecha_vencimiento,
+            estado, fecha_pago, pago_id
+        ) VALUES(NULL, ?, ?, ?, ?, ?, ?, ?)
+            `);
+
+                const fechaVentaDate = new Date();
+
+                // Distribución genérica: Pagos mensuales
+                for (let i = 1; i <= numCuotasToUse; i++) {
+                    const vencimientoCuota = new Date(fechaVentaDate);
+                    vencimientoCuota.setMonth(vencimientoCuota.getMonth() + (i - 1));
+
+                    if (i === 1) {
+                        // First cuota is paid immediately
+                        insertCuota.run(
+                            ventaId, i, montoCuota, vencimientoCuota.toISOString().split('T')[0],
+                            'pagado', new Date().toISOString(), idDelPago
+                        );
+                    } else {
+                        // Future cuotas are pending
+                        insertCuota.run(
+                            ventaId, i, montoCuota, vencimientoCuota.toISOString().split('T')[0],
+                            'pendiente', null, null
+                        );
+                    }
+                }
+            }
 
             return ventaId;
         });
@@ -223,21 +280,21 @@ const create = (req, res) => {
 
         // Get created sale with details
         const venta = db.prepare(`
-            SELECT v.*, 
-                   c.codigo as cliente_codigo, c.nombre as cliente_nombre, c.apellido as cliente_apellido,
-                   u.nombre as usuario_nombre
+            SELECT v.*,
+            c.codigo as cliente_codigo, c.nombre as cliente_nombre, c.apellido as cliente_apellido,
+            u.nombre as usuario_nombre
             FROM ventas v
             LEFT JOIN clientes c ON v.cliente_id = c.id
             LEFT JOIN usuarios u ON v.usuario_id = u.id
             WHERE v.id = ?
-        `).get(ventaId);
+            `).get(ventaId);
 
         const detalles = db.prepare(`
             SELECT vd.*, p.nombre as producto_nombre, p.codigo as producto_codigo
             FROM ventas_detalle vd
             JOIN productos p ON vd.producto_id = p.id
             WHERE vd.venta_id = ?
-        `).all(ventaId);
+            `).all(ventaId);
 
         res.status(201).json({
             ...venta,
@@ -261,27 +318,27 @@ const getByDateRange = (req, res) => {
         }
 
         const ventas = db.prepare(`
-            SELECT v.*, 
-                   c.codigo as cliente_codigo, c.nombre as cliente_nombre, c.apellido as cliente_apellido,
-                   u.nombre as usuario_nombre
+            SELECT v.*,
+            c.codigo as cliente_codigo, c.nombre as cliente_nombre, c.apellido as cliente_apellido,
+            u.nombre as usuario_nombre
             FROM ventas v
             LEFT JOIN clientes c ON v.cliente_id = c.id
             LEFT JOIN usuarios u ON v.usuario_id = u.id
             WHERE date(v.fecha_hora) BETWEEN ? AND ?
             ORDER BY v.fecha_hora DESC
-        `).all(fecha_inicio, fecha_fin);
+                `).all(fecha_inicio, fecha_fin);
 
         // Get totals
         const totales = db.prepare(`
-            SELECT 
-                COUNT(*) as total_ventas,
-                COALESCE(SUM(total), 0) as monto_total,
-                COALESCE(SUM(CASE WHEN metodo_pago = 'efectivo' THEN total ELSE 0 END), 0) as total_efectivo,
-                COALESCE(SUM(CASE WHEN metodo_pago = 'tarjeta' THEN total ELSE 0 END), 0) as total_tarjeta,
-                COALESCE(SUM(CASE WHEN metodo_pago = 'transferencia' THEN total ELSE 0 END), 0) as total_transferencia
+        SELECT
+        COUNT(*) as total_ventas,
+            COALESCE(SUM(total), 0) as monto_total,
+            COALESCE(SUM(CASE WHEN metodo_pago = 'efectivo' THEN total ELSE 0 END), 0) as total_efectivo,
+            COALESCE(SUM(CASE WHEN metodo_pago = 'tarjeta' THEN total ELSE 0 END), 0) as total_tarjeta,
+            COALESCE(SUM(CASE WHEN metodo_pago = 'transferencia' THEN total ELSE 0 END), 0) as total_transferencia
             FROM ventas
             WHERE date(fecha_hora) BETWEEN ? AND ?
-        `).get(fecha_inicio, fecha_fin);
+            `).get(fecha_inicio, fecha_fin);
 
         res.json({
             ventas,
@@ -302,26 +359,26 @@ const getToday = (req, res) => {
         const today = new Date().toISOString().split('T')[0];
 
         const ventas = db.prepare(`
-            SELECT v.*, 
-                   c.codigo as cliente_codigo, c.nombre as cliente_nombre, c.apellido as cliente_apellido,
-                   u.nombre as usuario_nombre
+            SELECT v.*,
+            c.codigo as cliente_codigo, c.nombre as cliente_nombre, c.apellido as cliente_apellido,
+            u.nombre as usuario_nombre
             FROM ventas v
             LEFT JOIN clientes c ON v.cliente_id = c.id
             LEFT JOIN usuarios u ON v.usuario_id = u.id
             WHERE date(v.fecha_hora) = ?
             ORDER BY v.fecha_hora DESC
-        `).all(today);
+                `).all(today);
 
         const totales = db.prepare(`
-            SELECT 
-                COUNT(*) as total_ventas,
-                COALESCE(SUM(total), 0) as monto_total,
-                COALESCE(SUM(CASE WHEN metodo_pago = 'efectivo' THEN total ELSE 0 END), 0) as total_efectivo,
-                COALESCE(SUM(CASE WHEN metodo_pago = 'tarjeta' THEN total ELSE 0 END), 0) as total_tarjeta,
-                COALESCE(SUM(CASE WHEN metodo_pago = 'transferencia' THEN total ELSE 0 END), 0) as total_transferencia
+        SELECT
+        COUNT(*) as total_ventas,
+            COALESCE(SUM(total), 0) as monto_total,
+            COALESCE(SUM(CASE WHEN metodo_pago = 'efectivo' THEN total ELSE 0 END), 0) as total_efectivo,
+            COALESCE(SUM(CASE WHEN metodo_pago = 'tarjeta' THEN total ELSE 0 END), 0) as total_tarjeta,
+            COALESCE(SUM(CASE WHEN metodo_pago = 'transferencia' THEN total ELSE 0 END), 0) as total_transferencia
             FROM ventas
             WHERE date(fecha_hora) = ?
-        `).get(today);
+            `).get(today);
 
         res.json({
             fecha: today,
@@ -342,14 +399,14 @@ const getTopProducts = (req, res) => {
         const { fecha_inicio, fecha_fin, limit = 10 } = req.query;
 
         let query = `
-            SELECT 
-                p.id, p.codigo, p.nombre, p.categoria,
-                SUM(vd.cantidad) as cantidad_vendida,
-                SUM(vd.subtotal) as total_ventas
+            SELECT
+        p.id, p.codigo, p.nombre, p.categoria,
+            SUM(vd.cantidad) as cantidad_vendida,
+            SUM(vd.subtotal) as total_ventas
             FROM ventas_detalle vd
             JOIN productos p ON vd.producto_id = p.id
             JOIN ventas v ON vd.venta_id = v.id
-        `;
+            `;
         const params = [];
 
         if (fecha_inicio && fecha_fin) {

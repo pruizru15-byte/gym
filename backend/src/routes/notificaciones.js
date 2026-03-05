@@ -12,6 +12,9 @@ router.get('/', notificacionesController.getAll);
 // Get unread count
 router.get('/no-leidas/contador', notificacionesController.getUnreadCount);
 
+// Get activity feed (notifications + audit logs)
+router.get('/actividad-reciente', notificacionesController.getActivityFeed);
+
 // Generate automatic notifications
 router.post('/generar-automaticas', notificacionesController.generateAutomatic);
 

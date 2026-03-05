@@ -1,0 +1,395 @@
+/* =========================================================
+   CarnetCliente – Client ID Card (26×32 mm, front & back)
+   Colors: Lime Green (#AAFF00), Black (#111), White (#FFF)
+   ========================================================= */
+
+/* We render at 4× for crisp exports (≈ 300 DPI output) */
+.carnet-render-area {
+    position: fixed;
+    left: -9999px;
+    top: -9999px;
+    z-index: -1;
+    pointer-events: none;
+}
+
+/* --- single face (26×32 mm × 4 = 393×484 px at 96 dpi) --- */
+.carnet-face {
+    width: 393px;
+    height: 484px;
+    border-radius: 16px;
+    overflow: hidden;
+    font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+    position: relative;
+    box-sizing: border-box;
+}
+
+/* ---------- FRONT ---------- */
+.carnet-front {
+    background: linear-gradient(160deg, #111111 0%, #1a1a1a 55%, #222 100%);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 28px 24px 22px;
+    gap: 0;
+}
+
+.carnet-front .carnet-top-stripe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background: linear-gradient(90deg, #AAFF00, #88DD00);
+}
+
+.carnet-front .carnet-gym-name {
+    font-size: 16px;
+    font-weight: 900;
+    letter-spacing: 2.5px;
+    color: #AAFF00;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 14px;
+    text-shadow: 0 1px 6px rgba(170, 255, 0, 0.25);
+    line-height: 1.15;
+    width: 100%;
+}
+
+.carnet-front .carnet-avatar {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    border: 3px solid #AAFF00;
+    background: #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 12px rgba(170, 255, 0, 0.15);
+    flex-shrink: 0;
+}
+
+.carnet-front .carnet-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.carnet-front .carnet-avatar-initials {
+    font-size: 32px;
+    font-weight: 800;
+    color: #AAFF00;
+}
+
+.carnet-front .carnet-client-name {
+    font-size: 15px;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 3px;
+    width: 100%;
+    padding: 0 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.3;
+    box-sizing: border-box;
+}
+
+.carnet-front .carnet-client-code {
+    font-size: 10px;
+    font-weight: 600;
+    color: #999;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    text-align: center;
+    width: 100%;
+    padding: 0 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    box-sizing: border-box;
+}
+
+.carnet-front .carnet-qr-container {
+    background: #fff;
+    border-radius: 10px;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    flex-shrink: 0;
+}
+
+.carnet-front .carnet-qr-container img {
+    width: 80px;
+    height: 80px;
+    display: block;
+}
+
+.carnet-front .carnet-member-label {
+    font-size: 8px;
+    font-weight: 600;
+    letter-spacing: 2.5px;
+    color: #AAFF00;
+    text-transform: uppercase;
+    margin-top: 10px;
+    opacity: 0.8;
+}
+
+/* ---------- BACK ---------- */
+.carnet-back {
+    background: linear-gradient(160deg, #AAFF00 0%, #88DD00 100%);
+    color: #111;
+    display: flex;
+    flex-direction: column;
+    padding: 24px 20px 18px;
+}
+
+.carnet-back .carnet-back-header {
+    font-size: 13px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-align: center;
+    margin-bottom: 16px;
+    color: #111;
+}
+
+.carnet-back .carnet-back-section {
+    background: rgba(255, 255, 255, 0.55);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+}
+
+.carnet-back .carnet-back-section-title {
+    font-size: 8px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #555;
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.carnet-back .carnet-back-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 3px 0;
+}
+
+.carnet-back .carnet-back-row+.carnet-back-row {
+    border-top: 1px solid rgba(0, 0, 0, 0.04);
+    padding-top: 5px;
+    margin-top: 2px;
+}
+
+.carnet-back .carnet-back-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #555;
+    flex-shrink: 0;
+    margin-right: 8px;
+}
+
+.carnet-back .carnet-back-value {
+    font-size: 10px;
+    font-weight: 700;
+    color: #111;
+    text-align: right;
+    max-width: 58%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.carnet-back .carnet-status-badge {
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: 20px;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.carnet-status-badge.activa {
+    background: #111;
+    color: #AAFF00;
+}
+
+.carnet-status-badge.inactiva {
+    background: #cc0000;
+    color: #fff;
+}
+
+.carnet-back .carnet-back-footer {
+    margin-top: auto;
+    text-align: center;
+    font-size: 8px;
+    font-weight: 600;
+    color: rgba(0, 0, 0, 0.4);
+    letter-spacing: 0.3px;
+    padding-top: 8px;
+}
+
+.carnet-back .carnet-back-bottom-stripe {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background: #111;
+}
+
+/* ---- Preview modal ---- */
+.carnet-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 20px;
+}
+
+.carnet-modal {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 560px;
+    width: 100%;
+    overflow: hidden;
+    animation: carnetSlideIn 0.25s ease-out;
+}
+
+@keyframes carnetSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.97);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.carnet-modal-header {
+    background: #111;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.carnet-modal-header h2 {
+    font-size: 16px;
+    font-weight: 800;
+    color: #AAFF00;
+    margin: 0;
+    letter-spacing: 1px;
+}
+
+.carnet-modal-header .close-btn {
+    background: none;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    padding: 4px;
+    transition: color 0.2s;
+}
+
+.carnet-modal-header .close-btn:hover {
+    color: #fff;
+}
+
+.carnet-modal-body {
+    padding: 28px 24px;
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    background: #f5f5f5;
+}
+
+.carnet-preview-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.carnet-preview-card {
+    transform: scale(0.52);
+    transform-origin: top center;
+    margin-bottom: -220px;
+}
+
+.carnet-preview-label {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 10px;
+}
+
+.carnet-modal-footer {
+    padding: 16px 24px;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    border-top: 1px solid #eee;
+    background: #fff;
+}
+
+.carnet-modal-footer button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.carnet-btn-pdf {
+    background: #dc2626;
+    color: #fff;
+}
+
+.carnet-btn-pdf:hover {
+    background: #b91c1c;
+}
+
+.carnet-btn-img {
+    background: #111;
+    color: #AAFF00;
+}
+
+.carnet-btn-img:hover {
+    background: #222;
+}
+
+.carnet-btn-close {
+    background: #e5e5e5;
+    color: #555;
+}
+
+.carnet-btn-close:hover {
+    background: #d4d4d4;
+}

@@ -85,6 +85,7 @@ export const membershipsAPI = {
   create: (data) => api.post('/membresias/asignar', data), // Changed for assignment
   update: (id, data) => api.put(`/membresias/${id}`, data),
   cancel: (id) => api.put(`/membresias/${id}/cancelar`), // This might need backend implementation
+  getExpiring: (days = 30) => api.get('/membresias/por-vencer', { params: { days } }),
 }
 
 // Plans API
@@ -118,13 +119,20 @@ export const alertsAPI = {
   markAsRead: (id) => api.patch(`/notificaciones/${id}/marcar-leida`), // PUT -> PATCH
   markAllAsRead: () => api.patch('/notificaciones/marcar-todas-leidas'), // PUT -> PATCH
   getUnreadCount: () => api.get('/notificaciones/no-leidas/contador'),
+  getActivityFeed: (params) => api.get('/notificaciones/actividad-reciente', { params }),
+  deleteNotification: (id) => api.delete(`/notificaciones/${id}`),
+  generateAutomatic: () => api.post('/notificaciones/generar-automaticas'),
 }
 
 // Reports API (now Metricas)
 export const reportsAPI = {
   getIncome: (params) => api.get('/metricas/ingresos', { params }),
+  getExpenses: (params) => api.get('/metricas/egresos', { params }),
   getMembers: (params) => api.get('/metricas/membresias', { params }),
   getAttendance: (params) => api.get('/metricas/asistencias', { params }),
+  getComparative: (params) => api.get('/metricas/comparativa', { params }),
+  getTopProducts: (params) => api.get('/metricas/productos-top', { params }),
+  getClientStats: (params) => api.get('/metricas/clientes-stats', { params }),
 }
 
 // Dashboard API
@@ -137,11 +145,13 @@ export const dashboardAPI = {
 export const productsAPI = {
   getAll: (params) => api.get('/tienda', { params }), // Changed to /tienda
   getById: (id) => api.get(`/tienda/${id}`),
-  create: (data) => api.post('/tienda', data),
-  update: (id, data) => api.put(`/tienda/${id}`, data),
+  create: (data) => api.post('/tienda', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  update: (id, data) => api.put(`/tienda/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   delete: (id) => api.delete(`/tienda/${id}`),
   getLowStock: () => api.get('/tienda/stock-bajo'),
   getExpiringSoon: () => api.get('/tienda/por-vencer'), // Warning: Endpoint missing
+  getCategories: () => api.get('/tienda/categorias'),
+  createCategory: (data) => api.post('/tienda/categorias', data)
 }
 
 // Payments & Cash Register API
@@ -155,6 +165,7 @@ export const paymentsAPI = {
   getCajaStatus: () => api.get('/pagos/caja/estado'),
   abrirCaja: (data) => api.post('/pagos/caja/abrir', data),
   recordCashCut: (data) => api.post('/pagos/corte-caja', data),
+  getCajaHistorial: (params) => api.get('/pagos/caja/historial', { params }),
 
   // Pendientes & Inactivos
   getPendientes: () => api.get('/pagos/pendientes'),
@@ -180,8 +191,20 @@ export const machinesAPI = {
   create: (data) => api.post('/maquinas', data),
   update: (id, data) => api.put(`/maquinas/${id}`, data),
   delete: (id) => api.delete(`/maquinas/${id}`),
-  recordMaintenance: (id, data) => api.post(`/maquinas/${id}/mantenimiento`, data),
-  getMaintenanceHistory: (id, params) => api.get(`/maquinas/${id}/mantenimiento`, { params }),
+  recordMaintenance: (id, data) => api.post(`/maquinas/${id}/mantenimientos`, data),
+  getMaintenanceHistory: (id, params) => api.get(`/maquinas/${id}/mantenimientos`, { params }),
+  updateStatus: (id, data) => api.patch(`/maquinas/${id}/estado`, data),
+}
+
+// Configuration API
+export const configuracionAPI = {
+  getAll: () => api.get('/configuracion'),
+  getGymInfo: () => api.get('/configuracion/gimnasio'),
+  updateGymInfo: (data) => api.put('/configuracion/gimnasio', data),
+  getSystemSettings: () => api.get('/configuracion/sistema'),
+  updateMultiple: (configuraciones) => api.put('/configuracion/multiple', { configuraciones }),
+  set: (clave, valor, descripcion) => api.post('/configuracion', { clave, valor, descripcion }),
+  initializeDefaults: () => api.post('/configuracion/inicializar'),
 }
 
 export default api

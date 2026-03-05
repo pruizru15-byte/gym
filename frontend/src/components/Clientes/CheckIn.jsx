@@ -57,8 +57,13 @@ const CheckIn = () => {
   }
 
   // Pagination derived values
-  const totalPages = Math.max(1, Math.ceil(recentCheckIns.length / PAGE_SIZE))
-  const paginatedRows = recentCheckIns.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+  // Filter records based on current mode
+  const filteredCheckIns = recentCheckIns.filter(ci => {
+    const tipo = ci.tipo || 'entrada'
+    return tipo === checkMode
+  })
+  const totalPages = Math.max(1, Math.ceil(filteredCheckIns.length / PAGE_SIZE))
+  const paginatedRows = filteredCheckIns.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
 
   // Search for members
   const searchMembers = async (term) => {
@@ -213,9 +218,9 @@ const CheckIn = () => {
   }
 
   return (
-    <div className="h-full flex flex-col gap-4 p-5 bg-gray-50">
+    <div className="h-full flex flex-col gap-4 p-5 bg-gray-50 dark:bg-gray-900 dark:bg-gray-900">
       {/* Principal Header Panel */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 dark:border-gray-700">
         <div className="bg-primary-600 rounded-t-xl px-6 py-3 text-white flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CheckCircle size={24} />
@@ -231,21 +236,21 @@ const CheckIn = () => {
           <div className="space-y-4 max-w-3xl">
 
             {/* Mode Toggle */}
-            <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
+            <div className="flex bg-gray-100 dark:bg-gray-700 rounded-xl p-1 gap-1">
               <button
-                onClick={() => { setCheckMode('entrada'); setSearchTerm(''); setSearchResults([]); }}
+                onClick={() => { setCheckMode('entrada'); setSearchTerm(''); setSearchResults([]); setCurrentPage(1); }}
                 className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg font-bold text-sm transition-all ${checkMode === 'entrada'
                   ? 'bg-green-500 text-white shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-300'
                   }`}
               >
                 <ArrowRight size={16} /> Registrar Entrada
               </button>
               <button
-                onClick={() => { setCheckMode('salida'); setSearchTerm(''); setSearchResults([]); }}
+                onClick={() => { setCheckMode('salida'); setSearchTerm(''); setSearchResults([]); setCurrentPage(1); }}
                 className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg font-bold text-sm transition-all ${checkMode === 'salida'
                   ? 'bg-orange-500 text-white shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-300'
                   }`}
               >
                 <ArrowLeft size={16} /> Registrar Salida
@@ -254,7 +259,7 @@ const CheckIn = () => {
 
             {/* Unified Search Input */}
             <div>
-              <label className="block text-gray-700 font-medium mb-3" htmlFor="search_input">
+              <label className="block text-gray-700 dark:text-gray-300 font-medium mb-3" htmlFor="search_input">
                 {checkMode === 'salida' ? 'Busque el cliente para registrar su salida:' : 'Ingrese código, ID o busque por nombre del cliente:'}
               </label>
               <div className="flex gap-3 relative">
@@ -267,7 +272,7 @@ const CheckIn = () => {
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleCheckInByCode()}
-                    className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-lg shadow-sm transition-shadow"
+                    className="w-full pl-12 pr-12 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-lg shadow-sm transition-shadow"
                     autoFocus
                   />
                   {searchTerm && (
@@ -286,16 +291,16 @@ const CheckIn = () => {
 
                   {/* Search Results Dropdown */}
                   {!loading && searchResults.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 mt-2 border border-gray-200 rounded-xl max-h-80 overflow-y-auto bg-white shadow-xl z-50">
+                    <div className="absolute top-full left-0 right-0 mt-2 border border-gray-200 dark:border-gray-700 rounded-xl max-h-80 overflow-y-auto bg-white dark:bg-gray-800 shadow-xl z-50">
                       {searchResults.map((member) => (
-                        <div key={member.id} className="p-4 border-b last:border-0 flex items-center justify-between hover:bg-gray-50 transition cursor-default">
+                        <div key={member.id} className="p-4 border-b last:border-0 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition cursor-default">
                           <div className="flex items-center gap-4">
                             <div className="h-12 w-12 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 overflow-hidden shrink-0 border border-primary-200">
                               {member.foto ? <img src={member.foto} alt="User" className="h-full w-full object-cover" /> : <User size={24} />}
                             </div>
                             <div>
-                              <p className="font-bold text-gray-900 text-lg leading-tight">{member.nombre} {member.apellido}</p>
-                              <p className="text-sm font-medium text-gray-500 mt-1">Código: <span className="bg-gray-100 px-2 py-0.5 rounded text-gray-700">{member.codigo}</span></p>
+                              <p className="font-bold text-gray-900 dark:text-white text-lg leading-tight">{member.nombre} {member.apellido}</p>
+                              <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1">Código: <span className="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-gray-700">{member.codigo}</span></p>
                             </div>
                           </div>
                           <button
@@ -323,10 +328,10 @@ const CheckIn = () => {
                 </button>
                 <button
                   onClick={handleQrScan}
-                  className={`flex items-center gap-2 px-6 py-3 border-2 font-bold rounded-xl transition shadow-sm ${qrScannerActive ? 'bg-primary-50 border-primary-400 text-primary-800' : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'}`}
+                  className={`flex items-center gap-2 px-6 py-3 border-2 font-bold rounded-xl transition shadow-sm ${qrScannerActive ? 'bg-primary-50 border-primary-400 text-primary-800' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 hover:border-gray-300 dark:border-gray-600 dark:border-gray-600'}`}
                   title="Escanear código QR"
                 >
-                  <QrCode size={20} className={qrScannerActive ? 'text-primary-600' : ''} />
+                  <QrCode size={20} className={qrScannerActive ? 'text-primary-600 dark:text-primary-400 dark:text-primary-400' : ''} />
                   QR
                 </button>
               </div>
@@ -341,20 +346,20 @@ const CheckIn = () => {
                     </h3>
                     <button
                       onClick={() => setQrScannerActive(false)}
-                      className="text-gray-500 hover:text-red-500 transition-colors"
+                      className="text-gray-500 dark:text-gray-400 hover:text-red-500 transition-colors"
                     >
                       <XCircle size={24} />
                     </button>
                   </div>
-                  <div id="qr-reader" className="w-full mx-auto overflow-hidden rounded-xl bg-white shadow-sm border border-gray-200"></div>
-                  <p className="text-center text-sm text-gray-600 mt-3 font-medium">
+                  <div id="qr-reader" className="w-full mx-auto overflow-hidden rounded-xl bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700 dark:border-gray-700"></div>
+                  <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-3 font-medium">
                     Apunta al código QR del cliente para registrar su entrada o salida
                   </p>
                 </div>
               )}
 
               {/* Helper text */}
-              <p className="text-gray-500 text-sm mt-3 flex items-center gap-1.5 ml-1">
+              <p className="text-gray-500 dark:text-gray-400 text-sm mt-3 flex items-center gap-1.5 ml-1">
                 <AlertCircle size={14} /> Escriba un nombre para ver sugerencias, o escriba el código exacto y presione Enter.
               </p>
             </div>
@@ -365,29 +370,29 @@ const CheckIn = () => {
       {/* Attendance Table - fills remaining height */}
       <div className="flex-1 flex flex-col min-h-0">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide">
+          <h2 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
             Asistencias de Hoy — {new Date().toLocaleDateString('es-ES')}
           </h2>
-          <span className="text-sm font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-            Total hoy: {getTodayCount()} asistencias
+          <span className="text-sm font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full">
+            Total hoy: {filteredCheckIns.length} {checkMode === 'salida' ? 'salidas' : 'entradas'}
           </span>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-900 sticky top-0 z-10 shadow-sm">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Hora</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Cliente</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Código</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Tipo</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Hora</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cliente</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Código</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tipo</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado</th>
                 {checkMode === 'salida' && (
                   <th className="px-6 py-4 text-left text-xs font-semibold text-orange-500 uppercase tracking-wider">Acción</th>
                 )}
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 dark:divide-gray-700">
               {paginatedRows.length === 0 ? (
                 <tr>
                   <td colSpan="5" className="px-6 py-10 text-center text-gray-500">
@@ -396,11 +401,11 @@ const CheckIn = () => {
                 </tr>
               ) : (
                 paginatedRows.map((ci) => (
-                  <tr key={ci.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                  <tr key={ci.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 dark:bg-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-medium">
                       {formatTimeOnly(ci.fecha_hora || ci.fechaHora)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 flex items-center gap-3">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white flex items-center gap-3">
                       <div className="h-8 w-8 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
                         {ci.cliente_foto ? <img src={ci.cliente_foto} alt="User" className="h-full w-full object-cover" /> : <User size={16} className="text-gray-500" />}
                       </div>
@@ -450,13 +455,13 @@ const CheckIn = () => {
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-2 pt-3">
             <span className="text-xs text-gray-500">
-              Página {currentPage} de {totalPages} &mdash; {recentCheckIns.length} registros
+              Página {currentPage} de {totalPages} &mdash; {filteredCheckIns.length} registros
             </span>
             <div className="flex gap-2">
               <button
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-1.5 text-xs font-bold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                className="px-3 py-1.5 text-xs font-bold rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 disabled:opacity-40 disabled:cursor-not-allowed transition"
               >
                 &larr; Anterior
               </button>
@@ -465,8 +470,8 @@ const CheckIn = () => {
                   key={page}
                   onClick={() => setCurrentPage(page)}
                   className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition ${page === currentPage
-                      ? 'bg-primary-600 text-white border-primary-600'
-                      : 'border-gray-200 bg-white hover:bg-gray-50 text-gray-700'
+                    ? 'bg-primary-600 text-white border-primary-600'
+                    : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 text-gray-700 dark:text-gray-300'
                     }`}
                 >
                   {page}
@@ -475,7 +480,7 @@ const CheckIn = () => {
               <button
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
-                className="px-3 py-1.5 text-xs font-bold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                className="px-3 py-1.5 text-xs font-bold rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 disabled:opacity-40 disabled:cursor-not-allowed transition"
               >
                 Siguiente &rarr;
               </button>
@@ -486,7 +491,7 @@ const CheckIn = () => {
         {/* Confirmation Modal */}
         {confirmationModal && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden transform animate-in fade-in zoom-in duration-200">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden transform animate-in fade-in zoom-in duration-200">
               {/* Modal Header */}
               <div className={`${confirmationModal.tipo === 'salida' ? 'bg-orange-500' : 'bg-green-500'} px-6 py-4 text-white flex items-center gap-3`}>
                 <CheckCircle size={28} className="text-white" />
@@ -498,7 +503,7 @@ const CheckIn = () => {
               {/* Modal Body */}
               <div className="p-6">
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="h-20 w-20 bg-gray-100 rounded-full border-4 border-white shadow-md overflow-hidden flex items-center justify-center">
+                  <div className="h-20 w-20 bg-gray-100 dark:bg-gray-700 rounded-full border-4 border-white shadow-md overflow-hidden flex items-center justify-center">
                     {confirmationModal.cliente_foto ? (
                       <img src={confirmationModal.cliente_foto} alt="Cliente" className="h-full w-full object-cover" />
                     ) : (
@@ -506,8 +511,8 @@ const CheckIn = () => {
                     )}
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-gray-900">{confirmationModal.cliente_nombre} {confirmationModal.cliente_apellido}</h3>
-                    <p className="text-gray-500 font-medium">Código: {confirmationModal.codigo}</p>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white dark:text-white">{confirmationModal.cliente_nombre} {confirmationModal.cliente_apellido}</h3>
+                    <p className="text-gray-500 dark:text-gray-400 font-medium">Código: {confirmationModal.codigo}</p>
                   </div>
                 </div>
 
@@ -516,22 +521,22 @@ const CheckIn = () => {
                     <span className="h-3 w-3 rounded-full bg-green-500 animate-pulse"></span>
                     Membresía ACTIVA
                   </div>
-                  <p className="text-gray-700 text-sm mb-1">
+                  <p className="text-gray-700 dark:text-gray-300 text-sm mb-1">
                     <span className="font-semibold">Plan:</span> {confirmationModal.membresia?.nombre || 'General'}
                   </p>
-                  <p className="text-gray-700 text-sm">
+                  <p className="text-gray-700 dark:text-gray-300 text-sm">
                     <span className="font-semibold">Vence:</span> {formatDateOnly(confirmationModal.membresia?.fecha_vencimiento)}
-                    <span className="text-gray-500 ml-1">
+                    <span className="text-gray-500 dark:text-gray-400 ml-1">
                       ({calculateDaysLeft(confirmationModal.membresia?.fecha_vencimiento)} días)
                     </span>
                   </p>
                 </div>
 
-                <div className="mb-6 border-t border-gray-100 pt-4">
-                  <p className="text-xs text-gray-500 uppercase font-semibold mb-1">
+                <div className="mb-6 border-t border-gray-100 dark:border-gray-700 pt-4">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">
                     Asistencia registrada:
                   </p>
-                  <p className="text-gray-800 font-medium flex items-center gap-2">
+                  <p className="text-gray-800 dark:text-gray-200 font-medium flex items-center gap-2">
                     <Clock size={16} className="text-primary-500" />
                     {formatDateOnly(confirmationModal.fecha_hora || confirmationModal.fechaHora)} - {formatTimeOnly(confirmationModal.fecha_hora || confirmationModal.fechaHora)}
                   </p>
